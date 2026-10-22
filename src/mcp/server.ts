@@ -60,8 +60,12 @@ server.registerTool(
 server.registerTool(
   'checkout',
   {
-    title: 'Pay with PayPal',
-    description: 'Buy one product with PayPal. The firewall checks the payment against the user’s rules and the active permission.',
+    title: 'Create PayPal order (needs user approval)',
+    description: [
+      'Create a PayPal order for one product, after the payment firewall checks it against the user’s rules and the active permission.',
+      'No money moves at this step: the order only completes when the user opens the returned PayPal link and approves it.',
+      'In this demo PayPal runs in sandbox mode with test money.',
+    ].join(' '),
     inputSchema: CheckoutInput,
   },
   safely(handlers.checkout),
