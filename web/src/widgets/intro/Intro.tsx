@@ -76,8 +76,13 @@ export const Intro = ({ onTryAttacks, onTryAgent }: Props) => {
         </div>
       </div>
 
-      <div className="evidence">
-        <h3>Why now</h3>
+      <details className="evidence">
+        <summary>
+          <span className="evidence__title">Why now</span>
+          <span className="muted">
+            {EVIDENCE.length} recent reports on AI agents spending money they shouldn't
+          </span>
+        </summary>
         <ul>
           {EVIDENCE.map((e) => (
             <li key={e.url}>
@@ -89,7 +94,7 @@ export const Intro = ({ onTryAttacks, onTryAgent }: Props) => {
             </li>
           ))}
         </ul>
-      </div>
+      </details>
 
       <div className="intro__try">
         <span className="muted">Try it in 60 seconds:</span>

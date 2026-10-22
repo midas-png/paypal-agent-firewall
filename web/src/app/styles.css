@@ -184,3 +184,14 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .event__thought { font-size: 14px; }
 .event__summary { display: grid; gap: 4px; padding: 12px 14px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
 .alert .link { justify-self: start; }
+
+.evidence summary {
+  display: flex; gap: 10px; align-items: baseline; cursor: pointer; list-style: none; font-size: 14px;
+}
+.evidence summary::-webkit-details-marker { display: none; }
+.evidence summary::before {
+  content: '▸'; color: var(--muted); transition: transform 0.15s; display: inline-block;
+}
+.evidence[open] summary::before { transform: rotate(90deg); }
+.evidence__title { font-weight: 600; font-size: 15px; }
+.evidence ul { margin-top: 10px; }
