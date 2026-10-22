@@ -167,3 +167,20 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .alert--bad > strong { color: var(--bad); }
 .alert--warn { border-color: var(--warn); background: var(--warn-bg); }
 .alert__body { display: grid; gap: 4px; }
+
+.alert--ok { border-color: var(--ok); background: var(--ok-bg); }
+.alert--ok > strong { color: var(--ok); }
+.alert--warn > strong { color: var(--warn); }
+.return-banner { margin-bottom: 20px; }
+.outcome--ok { border-left-color: var(--ok); }
+.outcome--bad { border-left-color: var(--bad); }
+.outcome--warn { border-left-color: var(--warn); }
+.outcome__checks { display: grid; gap: 4px; font-size: 14px; }
+.outcome__checks .link { justify-self: start; }
+.outcome__next { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; font-size: 14px; }
+.outcome__next .btn { text-decoration: none; }
+.checks li { grid-template-columns: 16px 72px 1fr; }
+.event__action { font-size: 14px; color: var(--muted); }
+.event__thought { font-size: 14px; }
+.event__summary { display: grid; gap: 4px; padding: 12px 14px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); }
+.alert .link { justify-self: start; }

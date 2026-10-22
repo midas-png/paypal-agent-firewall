@@ -134,5 +134,17 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
     createTask: (prompt: string, mandate: Mandate): Promise<TaskView> => verify(emptyTask(prompt, mandate), mandate),
     updateMandate: (taskId: string, mandate: Mandate): Promise<TaskView> => verify(requireTask(taskId), mandate),
     checkout,
+    /** Reflects a PayPal capture (after buyer approval) in the task that created the order. */
+    recordCapture: (orderId: string, status: string): void => {
+      for (const task of tasks.values()) {
+        if (!task.outcomes.some((o) => o.status === 'approved' && o.receipt.orderId === orderId)) continue;
+        save({
+          ...task,
+          outcomes: task.outcomes.map((o) =>
+            o.status === 'approved' && o.receipt.orderId === orderId ? { ...o, receipt: { ...o.receipt, status } } : o,
+          ),
+        });
+      }
+    },
   };
 };

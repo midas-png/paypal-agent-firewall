@@ -2,7 +2,7 @@ import type { AgentEvent, TaskView } from '@server/app/dto';
 import type { Mandate, Suggestion } from '@server/core/types';
 import type { Merchant, Product } from '@server/infra/catalog';
 import { useEffect, useRef, useState } from 'react';
-import { OutcomeCard } from '../../entities/outcome/OutcomeCard';
+import { AgentEventView } from '../../entities/agent-event/AgentEventView';
 import { ProofBanner } from '../../entities/proof/ProofBanner';
 import { api, toApiError, type ApiError, streamAgent } from '../../shared/api';
 import { MandateEditor } from '../../features/edit-mandate/MandateEditor';
@@ -37,6 +37,17 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
   const stopRef = useRef<(() => void) | null>(null);
 
   useEffect(() => () => stopRef.current?.(), []);
+
+  // The buyer approves PayPal orders in another tab; pick up the new status when they come back.
+  const taskId = task?.id;
+  useEffect(() => {
+    if (!taskId) return;
+    const refresh = () => {
+      api.getTask(taskId).then(setTask, () => undefined);
+    };
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [taskId]);
 
   const guard = async (fn: () => Promise<void>): Promise<void> => {
     setBusy(true);
@@ -134,11 +145,15 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
             </button>
           }
         >
-          {events.length === 0 && <p className="muted">Agent events and firewall decisions will stream here.</p>}
+          {events.length === 0 && (
+            <p className="muted">
+              Press “Run agent”: you will see what the agent does, and every payment it tries with the firewall's decision.
+            </p>
+          )}
           <ol className="timeline">
             {events.map((e, i) => (
               <li key={i} className={`event event--${e.type}`}>
-                <EventView event={e} products={products} />
+                <AgentEventView event={latest(e, task)} products={products} />
               </li>
             ))}
           </ol>
@@ -148,29 +163,10 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
   );
 };
 
-const EventView = ({ event, products }: { event: AgentEvent; products: readonly Product[] }) => {
-  switch (event.type) {
-    case 'thought':
-      return <p>{event.text}</p>;
-    case 'tool_call':
-      return (
-        <p className="mono muted">
-          → {event.tool}({JSON.stringify(event.args)})
-        </p>
-      );
-    case 'checkout':
-      return <OutcomeCard outcome={event.outcome} products={products} />;
-    case 'done':
-      return (
-        <p>
-          <strong>Agent summary:</strong> {event.summary}
-        </p>
-      );
-    case 'error':
-      return (
-        <Alert title={event.title}>
-          <p>{event.detail}</p>
-        </Alert>
-      );
-  }
+/** Checkout events are snapshots; show the task's current state of the same order (e.g. after capture). */
+const latest = (event: AgentEvent, task: TaskView | null): AgentEvent => {
+  if (event.type !== 'checkout' || event.outcome.status !== 'approved' || !task) return event;
+  const { orderId } = event.outcome.receipt;
+  const current = task.outcomes.find((o) => o.status === 'approved' && o.receipt.orderId === orderId);
+  return current ? { type: 'checkout', outcome: current } : event;
 };

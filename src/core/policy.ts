@@ -7,19 +7,19 @@ export const guardrailConstraints = (g: Guardrails): Constraint[] => {
     {
       id: 'g.currency',
       source: 'guardrail',
-      description: 'Currency must be USD',
+      description: 'Paid in USD',
       expr: oneOf('currency', ['USD']),
     },
     {
       id: 'g.max_per_payment',
       source: 'guardrail',
-      description: `Single payment ≤ ${formatCents(g.maxPerPaymentCents)}`,
+      description: `No single payment over ${formatCents(g.maxPerPaymentCents)}`,
       expr: le(v('amountCents'), num(g.maxPerPaymentCents)),
     },
     {
       id: 'g.daily_limit',
       source: 'guardrail',
-      description: `Spent today + payment ≤ ${formatCents(g.dailyLimitCents)}`,
+      description: `Today's total stays within ${formatCents(g.dailyLimitCents)}`,
       expr: le(add(v('spentTodayCents'), v('amountCents')), num(g.dailyLimitCents)),
     },
   ];
@@ -28,7 +28,7 @@ export const guardrailConstraints = (g: Guardrails): Constraint[] => {
     constraints.push({
       id: 'g.blocked_categories',
       source: 'guardrail',
-      description: `Category not in: ${g.blockedCategories.join(', ')}`,
+      description: `Not a blocked category (${g.blockedCategories.join(', ')})`,
       expr: not(oneOf('category', g.blockedCategories)),
     });
   }
@@ -37,7 +37,7 @@ export const guardrailConstraints = (g: Guardrails): Constraint[] => {
     constraints.push({
       id: 'g.allowed_merchants',
       source: 'guardrail',
-      description: `Merchant in: ${g.allowedMerchants.join(', ')}`,
+      description: `Only from allowed shops (${g.allowedMerchants.join(', ')})`,
       expr: oneOf('merchantId', g.allowedMerchants),
     });
   }
@@ -50,19 +50,19 @@ export const mandateConstraints = (m: Mandate): Constraint[] => {
     {
       id: 'm.budget',
       source: 'mandate',
-      description: `Spent on task + payment ≤ ${formatCents(m.budgetCents)}`,
+      description: `Task total stays within ${formatCents(m.budgetCents)}`,
       expr: le(add(v('spentInTaskCents'), v('amountCents')), num(m.budgetCents)),
     },
     {
       id: 'm.categories',
       source: 'mandate',
-      description: `Category in: ${m.allowedCategories.join(', ')}`,
+      description: `Only what this task is for (${m.allowedCategories.join(', ')})`,
       expr: oneOf('category', m.allowedCategories),
     },
     {
       id: 'm.max_items',
       source: 'mandate',
-      description: `Items per payment ≤ ${m.maxItems}`,
+      description: `At most ${m.maxItems} item(s) per payment`,
       expr: le(v('itemCount'), num(m.maxItems)),
     },
   ];
@@ -71,7 +71,7 @@ export const mandateConstraints = (m: Mandate): Constraint[] => {
     constraints.push({
       id: 'm.max_per_payment',
       source: 'mandate',
-      description: `Single payment ≤ ${formatCents(m.maxPerPaymentCents)}`,
+      description: `No single payment over ${formatCents(m.maxPerPaymentCents)} in this task`,
       expr: le(v('amountCents'), num(m.maxPerPaymentCents)),
     });
   }
@@ -80,7 +80,7 @@ export const mandateConstraints = (m: Mandate): Constraint[] => {
     constraints.push({
       id: 'm.merchants',
       source: 'mandate',
-      description: `Merchant in: ${m.allowedMerchants.join(', ')}`,
+      description: `Only from the shops you named (${m.allowedMerchants.join(', ')})`,
       expr: oneOf('merchantId', m.allowedMerchants),
     });
   }

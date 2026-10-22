@@ -10,7 +10,7 @@ interface Props {
 }
 
 const SUGGESTION_TITLE: Record<Suggestion['kind'], string> = {
-  'narrow-mandate': 'Narrow the mandate',
+  'narrow-mandate': 'Narrow this task',
   'relax-guardrails': 'Add slack to your limits',
 };
 
@@ -18,8 +18,8 @@ export const ProofBanner = ({ proof, suggestions = [], onApply, busy = false }: 
   if (proof.status === 'proven') {
     return (
       <div className="proof proof--ok">
-        <strong>Proven by Z3</strong> in {proof.durationMs} ms: every payment this mandate allows is also allowed by
-        your guardrails.
+        <strong>Safe to run.</strong> Every payment this task allows also fits your rules: proven mathematically by Z3
+        in {proof.durationMs} ms.
       </div>
     );
   }
@@ -28,18 +28,18 @@ export const ProofBanner = ({ proof, suggestions = [], onApply, busy = false }: 
   return (
     <div className="proof proof--bad">
       <p>
-        <strong>Counterexample found.</strong> This mandate would allow{' '}
+        <strong>This task could break your rules.</strong> Z3 found a payment it would allow:{' '}
         <span className="mono">
           {formatCents(payment.amountCents)} · {payment.category} · {payment.merchantId} · {payment.itemCount} item(s)
         </span>{' '}
-        after {formatCents(state.spentInTaskCents)} already spent on the task, which breaks:
+        after {formatCents(state.spentInTaskCents)} already spent on the task. That breaks:
       </p>
       <ul>
         {violated.map((c) => (
           <li key={c.constraintId}>{c.description}</li>
         ))}
       </ul>
-      <p>Payments are disabled until the conflict is resolved.</p>
+      <p>The agent can't pay until this is fixed. Pick a fix below or edit the task.</p>
 
       {suggestions.length > 0 && (
         <div className="suggestions">

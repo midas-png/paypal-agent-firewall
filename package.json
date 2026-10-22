@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "Formally verified payment firewall for AI shopping agents, built on PayPal Agent Toolkit and Z3.",
   "scripts": {
-    "dev": "concurrently -n api,web -c blue,magenta \"tsx watch --env-file-if-exists=.env src/server/index.ts\" \"vite\"",
+    "dev": "concurrently -n api,web -c blue,magenta \"PUBLIC_URL=http://localhost:5173 tsx watch --env-file-if-exists=.env src/server/index.ts\" \"vite\"",
     "build": "vite build",
     "start": "tsx --env-file-if-exists=.env src/server/index.ts",
     "typecheck": "tsc -p .",

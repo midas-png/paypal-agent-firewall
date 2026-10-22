@@ -7,6 +7,7 @@ import { AgentRun } from '../../widgets/agent-run/AgentRun';
 import { AttackLab } from '../../widgets/attack-lab/AttackLab';
 import { GuardrailsPanel } from '../../widgets/guardrails/GuardrailsPanel';
 import { Intro } from '../../widgets/intro/Intro';
+import { PaymentReturnBanner } from '../../widgets/payment-return/PaymentReturnBanner';
 
 type Tab = 'agent' | 'attacks';
 
@@ -61,6 +62,8 @@ export const ConsolePage = () => {
           <Badge tone={state.llmAvailable ? 'ok' : 'warn'}>{state.llmAvailable ? 'LLM on' : 'LLM off'}</Badge>
         </div>
       </header>
+
+      <PaymentReturnBanner />
 
       <Intro
         onTryAttacks={() => {

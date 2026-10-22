@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { runShoppingAgent } from './agent';
 import type { AgentEvent } from './dto';
 import { createFirewallService } from './firewallService';
-import { createPaymentGateway } from '../infra/paymentGateway';
+import { dryRunGateway } from '../infra/paymentGateway';
 
 const call = (id: string, toolName: string, args: object): LanguageModelV1FunctionToolCall => ({
   toolCallType: 'function',
@@ -44,7 +44,7 @@ describe('shopping agent behind the firewall', () => {
       },
     });
 
-    const service = createFirewallService({ gateway: createPaymentGateway({}) });
+    const service = createFirewallService({ gateway: dryRunGateway });
     const task = await service.createTask('Buy earbuds from SoundHub, up to $150', {
       goal: 'Buy earbuds from SoundHub',
       budgetCents: 150_00,

@@ -12,7 +12,15 @@ import { MERCHANTS, PRODUCTS } from '../infra/catalog';
 import { createModel, describeLlmError, type UserFacingError } from '../infra/llm';
 import { createPaymentGateway } from '../infra/paymentGateway';
 
-const gateway = createPaymentGateway(process.env);
+const port = Number(process.env.PORT ?? 8787);
+/** Origin the browser uses; in dev this is the Vite server, which proxies /api here. */
+const publicUrl = (process.env.PUBLIC_URL ?? `http://localhost:${port}`).replace(/\/$/, '');
+const gateway = createPaymentGateway({
+  clientId: process.env.PAYPAL_CLIENT_ID,
+  clientSecret: process.env.PAYPAL_CLIENT_SECRET,
+  returnUrl: `${publicUrl}/api/paypal/return`,
+  cancelUrl: `${publicUrl}/api/paypal/cancel`,
+});
 const model = createModel(process.env);
 const service = createFirewallService({ gateway });
 
@@ -71,23 +79,26 @@ app.get('/api/tasks/:id', (c) => c.json(service.getTask(c.req.param('id'))));
 app.get('/api/tasks/:id/run', (c) => {
   const taskId = c.req.param('id');
   return streamSSE(c, async (stream) => {
+    // Writes are chained and awaited before the handler returns; otherwise the stream can
+    // close before the final `done` event is flushed and the client sees a dropped connection.
+    let pending: Promise<void> = Promise.resolve();
     const send = (event: AgentEvent): void => {
-      void stream.writeSSE({ data: JSON.stringify(event) });
+      pending = pending.then(() => stream.writeSSE({ data: JSON.stringify(event) }));
     };
+
     if (!model) {
       send({ type: 'error', ...fail('No AI model configured', 'Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env and restart.') });
-      return;
-    }
-    if (service.getTask(taskId).proof.status !== 'proven') {
+    } else if (service.getTask(taskId).proof.status !== 'proven') {
       send({ type: 'error', ...fail('Mandate is not verified', 'Resolve the conflict in step 2 first.') });
-      return;
+    } else {
+      try {
+        await runShoppingAgent({ model, service, taskId, emit: send });
+      } catch (e) {
+        console.error(e);
+        send({ type: 'error', ...describeLlmError(e, model) });
+      }
     }
-    try {
-      await runShoppingAgent({ model, service, taskId, emit: send });
-    } catch (e) {
-      console.error(e);
-      send({ type: 'error', ...describeLlmError(e, model) });
-    }
+    await pending;
   });
 });
 
@@ -100,10 +111,27 @@ app.post('/api/attacks/:id', async (c) =>
   ),
 );
 
+// PayPal redirects the buyer here after approving: collect the payment, then show the result in the app.
+app.get('/api/paypal/return', async (c) => {
+  const orderId = c.req.query('token') ?? '';
+  const back = (params: Record<string, string>) => c.redirect(`${publicUrl}/?${new URLSearchParams(params).toString()}`);
+  try {
+    const capture = await gateway.captureOrder(orderId);
+    service.recordCapture(capture.orderId, capture.status);
+    return back({ paypal: 'paid', order: capture.orderId });
+  } catch (e) {
+    console.error(e);
+    return back({ paypal: 'failed', order: orderId, reason: errorMessage(e) });
+  }
+});
+
+app.get('/api/paypal/cancel', (c) =>
+  c.redirect(`${publicUrl}/?${new URLSearchParams({ paypal: 'cancelled', order: c.req.query('token') ?? '' }).toString()}`),
+);
+
 app.use('/*', serveStatic({ root: './dist/web' }));
 app.get('/*', serveStatic({ path: './dist/web/index.html' }));
 
-const port = Number(process.env.PORT ?? 8787);
 serve({ fetch: app.fetch, port }, () => {
   console.log(`Agent Payment Firewall on http://localhost:${port}`);
   console.log(`  payments: ${gateway.mode} | llm: ${model ? 'on' : 'off (Attack Lab only)'}`);

@@ -1,5 +1,5 @@
 import type { Guardrails, Mandate } from '../core/types';
-import { createPaymentGateway } from '../infra/paymentGateway';
+import { dryRunGateway } from '../infra/paymentGateway';
 import type { AttackRunView, AttackScenarioView, CheckoutRequest } from './dto';
 import { createFirewallService } from './firewallService';
 
@@ -79,7 +79,7 @@ export const runAttack = async (
   const scenario = SCENARIOS.find((s) => s.id === scenarioId);
   if (!scenario) throw new Error(`Unknown scenario ${scenarioId}`);
 
-  const sandbox = createFirewallService({ gateway: createPaymentGateway({}), ...context });
+  const sandbox = createFirewallService({ gateway: dryRunGateway, ...context });
   const task = await sandbox.createTask(PROMPT, MANDATE);
   for (const attempt of scenario.attempts) {
     await sandbox.checkout(task.id, attempt);

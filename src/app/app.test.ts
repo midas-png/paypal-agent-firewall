@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { listAttacks, runAttack } from './attacks';
 import { createFirewallService, DEFAULT_GUARDRAILS } from './firewallService';
-import type { PaymentGateway } from '../infra/paymentGateway';
+import { dryRunGateway, type PaymentGateway } from '../infra/paymentGateway';
 
 const context = { guardrails: DEFAULT_GUARDRAILS, spentTodayCents: 0 };
 const statuses = async (id: string): Promise<string[]> =>
@@ -61,6 +61,17 @@ describe('firewall service', () => {
     expect(service.getTask(task.id).proof.status).toBe('counterexample');
   });
 
+  it('marks an approved order as captured after the buyer pays in PayPal', async () => {
+    const service = createFirewallService({ gateway: slowGateway });
+    const task = await service.createTask('x', mandate);
+    const outcome = await service.checkout(task.id, { productId: 'sh-aurora', quantity: 1 });
+    if (outcome.status !== 'approved') throw new Error('expected approval');
+
+    service.recordCapture(outcome.receipt.orderId, 'COMPLETED');
+    const [stored] = service.getTask(task.id).outcomes;
+    expect(stored?.status === 'approved' && stored.receipt.status).toBe('COMPLETED');
+  });
+
   it('rolls back the reservation when the gateway fails', async () => {
     const service = createFirewallService({ gateway: failingGateway });
     const task = await service.createTask('x', { ...mandate, allowedCategories: ['electronics'] });
@@ -81,14 +92,14 @@ describe('firewall service', () => {
 });
 
 const failingGateway: PaymentGateway = {
-  mode: 'dry-run',
+  ...dryRunGateway,
   createOrder: async () => {
     throw new Error('network down');
   },
 };
 
 const slowGateway: PaymentGateway = {
-  mode: 'dry-run',
+  ...dryRunGateway,
   createOrder: async () => {
     await new Promise((r) => setTimeout(r, 20));
     return { orderId: 'X', status: 'CREATED', approveUrl: null, mode: 'dry-run' };
