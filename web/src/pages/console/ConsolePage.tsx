@@ -1,8 +1,8 @@
 import type { AppStateView } from '@server/app/dto';
 import type { Guardrails } from '@server/core/types';
 import { useCallback, useEffect, useState } from 'react';
-import { api } from '../../shared/api';
-import { Badge } from '../../shared/ui';
+import { api, toApiError, type ApiError } from '../../shared/api';
+import { Alert, Badge } from '../../shared/ui';
 import { AgentRun } from '../../widgets/agent-run/AgentRun';
 import { AttackLab } from '../../widgets/attack-lab/AttackLab';
 import { GuardrailsPanel } from '../../widgets/guardrails/GuardrailsPanel';
@@ -12,16 +12,25 @@ type Tab = 'agent' | 'attacks';
 
 export const ConsolePage = () => {
   const [state, setState] = useState<AppStateView | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const [tab, setTab] = useState<Tab>('agent');
   const [autoRunAttacks, setAutoRunAttacks] = useState(false);
 
   const refresh = useCallback(() => {
-    api.getState().then(setState, (e: unknown) => setError(String(e)));
+    api.getState().then(setState, (e: unknown) => setError(toApiError(e)));
   }, []);
   useEffect(refresh, [refresh]);
 
-  if (error) return <p className="error page">{error}</p>;
+  if (error) {
+    return (
+      <div className="page">
+        <Alert title="Can't reach the firewall server">
+          <p>{error.detail}</p>
+          <p className="muted">Start it with start.command (or npm start) and reload this page.</p>
+        </Alert>
+      </div>
+    );
+  }
   if (!state) return <p className="muted page">Loading…</p>;
 
   const saveGuardrails = async (g: Guardrails): Promise<void> => {

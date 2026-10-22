@@ -51,3 +51,10 @@ export const DollarInput = ({ cents, onChange }: { cents: number; onChange: (cen
     />
   </div>
 );
+
+export const Alert = ({ title, children, tone = 'bad' }: { title: string; children: ReactNode; tone?: 'bad' | 'warn' }) => (
+  <div className={`alert alert--${tone}`} role="alert">
+    <strong>{title}</strong>
+    <div className="alert__body">{children}</div>
+  </div>
+);

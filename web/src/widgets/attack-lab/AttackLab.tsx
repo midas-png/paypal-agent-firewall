@@ -3,8 +3,8 @@ import type { Product } from '@server/infra/catalog';
 import { useEffect, useState } from 'react';
 import { OutcomeCard } from '../../entities/outcome/OutcomeCard';
 import { ProofBanner } from '../../entities/proof/ProofBanner';
-import { api } from '../../shared/api';
-import { Badge, Panel } from '../../shared/ui';
+import { api, toApiError, type ApiError } from '../../shared/api';
+import { Alert, Badge, Panel } from '../../shared/ui';
 
 interface Props {
   readonly attacks: readonly AttackScenarioView[];
@@ -24,14 +24,18 @@ const verdictOf = (run: AttackRunView): { tone: 'ok' | 'bad'; label: string } =>
 export const AttackLab = ({ attacks, products, autoRun = false, onAutoRunStarted }: Props) => {
   const [runs, setRuns] = useState<Record<string, AttackRunView>>({});
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<ApiError | null>(null);
 
   const run = async (ids: readonly string[]): Promise<void> => {
     setBusy(true);
+    setError(null);
     try {
       for (const id of ids) {
         const result = await api.runAttack(id);
         setRuns((prev) => ({ ...prev, [id]: result }));
       }
+    } catch (e) {
+      setError(toApiError(e));
     } finally {
       setBusy(false);
     }
@@ -57,6 +61,11 @@ export const AttackLab = ({ attacks, products, autoRun = false, onAutoRunStarted
         Replays what a compromised agent would try under the mandate “headphones from SoundHub, up to $150”, against your
         current guardrails. Runs in an isolated dry-run sandbox: no money moves.
       </p>
+      {error && (
+        <Alert title={error.title}>
+          <p>{error.detail}</p>
+        </Alert>
+      )}
       <div className="attacks">
         {attacks.map((a) => {
           const result = runs[a.id];

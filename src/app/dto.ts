@@ -6,6 +6,11 @@ import type { CheckoutRequestSchema } from './schemas';
 
 /** Types shared with the web client over HTTP. */
 
+/** Error body returned by every failing endpoint. */
+export interface ApiErrorBody {
+  readonly error: { readonly title: string; readonly detail: string };
+}
+
 export type CheckoutRequest = z.infer<typeof CheckoutRequestSchema>;
 
 export type CheckoutOutcome =
@@ -30,7 +35,7 @@ export type AgentEvent =
   | { readonly type: 'tool_call'; readonly tool: string; readonly args: unknown }
   | { readonly type: 'checkout'; readonly outcome: CheckoutOutcome }
   | { readonly type: 'done'; readonly summary: string }
-  | { readonly type: 'error'; readonly message: string };
+  | { readonly type: 'error'; readonly title: string; readonly detail: string };
 
 export interface AttackScenarioView {
   readonly id: string;

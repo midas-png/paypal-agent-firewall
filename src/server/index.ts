@@ -9,7 +9,7 @@ import { createFirewallService } from '../app/firewallService';
 import { extractMandate } from '../app/mandate';
 import { CreateTaskSchema, GuardrailsSchema, MandateSchema } from '../app/schemas';
 import { MERCHANTS, PRODUCTS } from '../infra/catalog';
-import { createModel } from '../infra/llm';
+import { createModel, describeLlmError, type UserFacingError } from '../infra/llm';
 import { createPaymentGateway } from '../infra/paymentGateway';
 
 const gateway = createPaymentGateway(process.env);
@@ -17,10 +17,14 @@ const model = createModel(process.env);
 const service = createFirewallService({ gateway });
 
 const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+const fail = (title: string, detail: string): UserFacingError => ({ title, detail });
 
 const app = new Hono();
 
-app.onError((err, c) => c.json({ error: errorMessage(err) }, 400));
+app.onError((err, c) => {
+  console.error(err);
+  return c.json({ error: fail('Request failed', errorMessage(err)) }, 400);
+});
 
 app.get('/api/state', (c) =>
   c.json<AppStateView>({
@@ -47,8 +51,15 @@ app.post('/api/day/reset', (c) => {
 app.post('/api/tasks', async (c) => {
   const { prompt, mandate } = CreateTaskSchema.parse(await c.req.json());
   if (mandate) return c.json(await service.createTask(prompt, mandate));
-  if (!model) throw new Error('No LLM configured: provide a mandate manually');
-  return c.json(await service.createTask(prompt, await extractMandate(model, prompt)));
+  if (!model) {
+    return c.json({ error: fail('No AI model configured', 'Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env, or use the preset mandate.') }, 400);
+  }
+  try {
+    return c.json(await service.createTask(prompt, await extractMandate(model, prompt)));
+  } catch (e) {
+    console.error(e);
+    return c.json({ error: describeLlmError(e, model) }, 502);
+  }
 });
 
 app.put('/api/tasks/:id/mandate', async (c) =>
@@ -63,12 +74,19 @@ app.get('/api/tasks/:id/run', (c) => {
     const send = (event: AgentEvent): void => {
       void stream.writeSSE({ data: JSON.stringify(event) });
     };
+    if (!model) {
+      send({ type: 'error', ...fail('No AI model configured', 'Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env and restart.') });
+      return;
+    }
+    if (service.getTask(taskId).proof.status !== 'proven') {
+      send({ type: 'error', ...fail('Mandate is not verified', 'Resolve the conflict in step 2 first.') });
+      return;
+    }
     try {
-      if (!model) throw new Error('No LLM configured: set ANTHROPIC_API_KEY or OPENAI_API_KEY');
-      if (service.getTask(taskId).proof.status !== 'proven') throw new Error('Mandate is not proven safe');
       await runShoppingAgent({ model, service, taskId, emit: send });
     } catch (e) {
-      send({ type: 'error', message: errorMessage(e) });
+      console.error(e);
+      send({ type: 'error', ...describeLlmError(e, model) });
     }
   });
 });

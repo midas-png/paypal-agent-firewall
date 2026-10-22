@@ -159,3 +159,11 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .evidence a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
 .evidence a:hover { border-bottom-color: var(--accent); }
 @media (max-width: 700px) { .evidence li { grid-template-columns: 1fr; gap: 0; } }
+
+.alert {
+  display: grid; gap: 4px; padding: 12px 14px; border-radius: 8px; border: 1px solid; font-size: 14px;
+}
+.alert--bad { border-color: var(--bad); background: var(--bad-bg); }
+.alert--bad > strong { color: var(--bad); }
+.alert--warn { border-color: var(--warn); background: var(--warn-bg); }
+.alert__body { display: grid; gap: 4px; }

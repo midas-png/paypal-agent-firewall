@@ -4,9 +4,9 @@ import type { Merchant, Product } from '@server/infra/catalog';
 import { useEffect, useRef, useState } from 'react';
 import { OutcomeCard } from '../../entities/outcome/OutcomeCard';
 import { ProofBanner } from '../../entities/proof/ProofBanner';
-import { api, streamAgent } from '../../shared/api';
+import { api, toApiError, type ApiError, streamAgent } from '../../shared/api';
 import { MandateEditor } from '../../features/edit-mandate/MandateEditor';
-import { Panel } from '../../shared/ui';
+import { Alert, Panel } from '../../shared/ui';
 
 const DEFAULT_PROMPT =
   'Buy me noise-cancelling headphones or earbuds from SoundHub, up to $150. Check the Nova earbuds page too.';
@@ -33,7 +33,7 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
   const [events, setEvents] = useState<AgentEvent[]>([]);
   const [busy, setBusy] = useState(false);
   const [running, setRunning] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ApiError | null>(null);
   const stopRef = useRef<(() => void) | null>(null);
 
   useEffect(() => () => stopRef.current?.(), []);
@@ -44,7 +44,7 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(toApiError(e));
     } finally {
       setBusy(false);
     }
@@ -99,7 +99,12 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
           </button>
           {!llmAvailable && <span className="muted">LLM off: set ANTHROPIC_API_KEY or OPENAI_API_KEY</span>}
         </div>
-        {error && <p className="error">{error}</p>}
+        {error && (
+          <Alert title={error.title}>
+            <p>{error.detail}</p>
+            <p className="muted">You can still continue: “Use preset mandate” works without the AI model.</p>
+          </Alert>
+        )}
       </Panel>
 
       {task && (
@@ -162,6 +167,10 @@ const EventView = ({ event, products }: { event: AgentEvent; products: readonly 
         </p>
       );
     case 'error':
-      return <p className="error">{event.message}</p>;
+      return (
+        <Alert title={event.title}>
+          <p>{event.detail}</p>
+        </Alert>
+      );
   }
 };

@@ -1,15 +1,31 @@
-import type { AgentEvent, AppStateView, AttackRunView, TaskView } from '@server/app/dto';
+import type { AgentEvent, ApiErrorBody, AppStateView, AttackRunView, TaskView } from '@server/app/dto';
 import type { Guardrails, Mandate } from '@server/core/types';
+
+/** A failure the UI can show as-is: a short title plus what to do about it. */
+export class ApiError extends Error {
+  constructor(
+    readonly title: string,
+    readonly detail: string,
+  ) {
+    super(`${title}: ${detail}`);
+  }
+}
+
+const isApiErrorBody = (body: unknown): body is ApiErrorBody =>
+  typeof body === 'object' && body !== null && 'error' in body && typeof body.error === 'object' && body.error !== null;
+
+export const toApiError = (e: unknown): ApiError =>
+  e instanceof ApiError ? e : new ApiError('Something went wrong', e instanceof Error ? e.message : String(e));
 
 const request = async <T>(path: string, init?: RequestInit): Promise<T> => {
   const res = await fetch(path, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
   });
-  const body: unknown = await res.json();
+  const body: unknown = await res.json().catch(() => null);
   if (!res.ok) {
-    const message = typeof body === 'object' && body !== null && 'error' in body ? String(body.error) : res.statusText;
-    throw new Error(message);
+    if (isApiErrorBody(body)) throw new ApiError(body.error.title, body.error.detail);
+    throw new ApiError('Server error', `${res.status} ${res.statusText}. Is the server running?`);
   }
   return body as T; // trusted: same-origin server returning typed DTOs
 };
@@ -32,8 +48,14 @@ export const streamAgent = (taskId: string, onEvent: (e: AgentEvent) => void): (
   source.onmessage = (msg: MessageEvent<string>) => {
     const event = JSON.parse(msg.data) as AgentEvent;
     onEvent(event);
-    if (event.type === 'done' || event.type === 'error') source.close();
+    if (event.type === 'done' || event.type === 'error') {
+      source.onerror = null;
+      source.close();
+    }
   };
-  source.onerror = () => source.close();
+  source.onerror = () => {
+    source.close();
+    onEvent({ type: 'error', title: 'Lost connection to the server', detail: 'Check that the server is still running and try again.' });
+  };
   return () => source.close();
 };
