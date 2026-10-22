@@ -99,27 +99,32 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
 
   return (
     <div className="stack">
-      <Panel title="1 · Ask the agent">
+      <Panel title="1 · Tell the agent what to buy">
         <textarea rows={3} value={prompt} onChange={(e) => setPrompt(e.target.value)} />
         <div className="row">
           <button type="button" className="btn" disabled={busy || !llmAvailable} onClick={() => void createTask()}>
-            Extract mandate with LLM
+            Continue
           </button>
           <button type="button" className="btn btn--ghost" disabled={busy} onClick={() => void createTask(MANUAL_MANDATE)}>
-            Use preset mandate
+            Use example (no AI needed)
           </button>
-          {!llmAvailable && <span className="muted">LLM off: set ANTHROPIC_API_KEY or OPENAI_API_KEY</span>}
+          {!llmAvailable && (
+            <span className="muted">The AI agent is off: add an Anthropic or OpenAI key to .env to turn it on.</span>
+          )}
         </div>
         {error && (
           <Alert title={error.title}>
             <p>{error.detail}</p>
-            <p className="muted">You can still continue: “Use preset mandate” works without the AI model.</p>
+            <p className="muted">You can still continue with “Use example”: it works without the AI model.</p>
           </Alert>
         )}
       </Panel>
 
       {task && (
-        <Panel title="2 · Verify the mandate" aside={<span className="muted">only your prompt can grant permissions</span>}>
+        <Panel
+          title="2 · Check what the agent may spend"
+          aside={<span className="muted">only your words set this, never a web page</span>}
+        >
           <ProofBanner
             proof={task.proof}
             suggestions={task.suggestions}
@@ -130,7 +135,7 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
             mandate={task.mandate}
             merchants={merchants}
             busy={busy}
-            submitLabel="Re-verify with Z3"
+            submitLabel="Save and re-check"
             onSubmit={(m) => void updateMandate(m)}
           />
         </Panel>
@@ -141,13 +146,20 @@ export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: 
           title="3 · Let the agent shop"
           aside={
             <button type="button" className="btn" disabled={!canRun} onClick={run}>
-              {running ? 'Running…' : 'Run agent'}
+              {running ? 'Shopping…' : 'Start shopping'}
             </button>
           }
         >
-          {events.length === 0 && (
+          {events.length === 0 && !canRun && !running && (
             <p className="muted">
-              Press “Run agent”: you will see what the agent does, and every payment it tries with the firewall's decision.
+              {task.proof.status !== 'proven'
+                ? 'Fix the conflict in step 2 first: the agent can only shop with a safe permission.'
+                : 'The AI agent is off. Add an Anthropic or OpenAI key to .env, or try the Attack Lab tab.'}
+            </p>
+          )}
+          {events.length === 0 && canRun && (
+            <p className="muted">
+              Press “Start shopping”: you will see what the agent does, and every payment it tries with the firewall's decision.
             </p>
           )}
           <ol className="timeline">

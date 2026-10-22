@@ -19,9 +19,11 @@ interface ChipsProps<T extends string> {
   readonly selected: readonly T[];
   readonly onToggle: (value: T) => void;
   readonly tone?: 'ok' | 'bad';
+  /** Display text for a value; defaults to the value itself. */
+  readonly format?: (value: T) => string;
 }
 
-export const Chips = <T extends string>({ options, selected, onToggle, tone = 'ok' }: ChipsProps<T>) => (
+export const Chips = <T extends string>({ options, selected, onToggle, tone = 'ok', format = String }: ChipsProps<T>) => (
   <div className="chips">
     {options.map((o) => (
       <button
@@ -30,7 +32,7 @@ export const Chips = <T extends string>({ options, selected, onToggle, tone = 'o
         className={`chip ${selected.includes(o) ? `chip--on chip--${tone}` : ''}`}
         onClick={() => onToggle(o)}
       >
-        {o}
+        {format(o)}
       </button>
     ))}
   </div>

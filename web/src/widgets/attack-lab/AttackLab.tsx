@@ -58,8 +58,8 @@ export const AttackLab = ({ attacks, products, autoRun = false, onAutoRunStarted
       }
     >
       <p className="muted">
-        Replays what a compromised agent would try under the mandate “headphones from SoundHub, up to $150”, against your
-        current guardrails. Runs in an isolated dry-run sandbox: no money moves.
+        Replays what a tricked agent would try on the task “headphones from SoundHub, up to $150”, checked against your
+        current rules. It runs in a simulation: no money moves.
       </p>
       {error && (
         <Alert title={error.title}>

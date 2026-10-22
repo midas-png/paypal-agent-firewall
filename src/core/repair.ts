@@ -1,3 +1,4 @@
+import { categoryList } from './labels';
 import { formatCents } from './money';
 import type { Guardrails, Mandate, Suggestion } from './types';
 
@@ -25,7 +26,7 @@ export const narrowMandate = ({ mandate, guardrails, spentTodayCents }: RepairIn
   const allowedCategories = mandate.allowedCategories.filter((c) => !blocked.has(c));
   if (allowedCategories.length === 0) return null;
   if (allowedCategories.length < mandate.allowedCategories.length) {
-    changes.push(`Drop blocked categories: ${mandate.allowedCategories.filter((c) => blocked.has(c)).join(', ')}`);
+    changes.push(`Drop blocked categories: ${categoryList(mandate.allowedCategories.filter((c) => blocked.has(c)))}`);
   }
 
   let allowedMerchants = mandate.allowedMerchants;

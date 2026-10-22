@@ -62,9 +62,9 @@ export const ConsolePage = () => {
         </div>
         <div className="top__badges">
           <Badge tone={state.gatewayMode === 'paypal-sandbox' ? 'ok' : 'warn'}>
-            {state.gatewayMode === 'paypal-sandbox' ? 'PayPal sandbox' : 'PayPal dry-run'}
+            {state.gatewayMode === 'paypal-sandbox' ? 'PayPal: sandbox' : 'PayPal: simulated'}
           </Badge>
-          <Badge tone={state.llmAvailable ? 'ok' : 'warn'}>{state.llmAvailable ? 'LLM on' : 'LLM off'}</Badge>
+          <Badge tone={state.llmAvailable ? 'ok' : 'warn'}>{state.llmAvailable ? 'AI agent: on' : 'AI agent: off'}</Badge>
         </div>
       </header>
 

@@ -1,3 +1,4 @@
+import { categoryLabel } from '@server/core/labels';
 import { formatCents } from '@server/core/money';
 import type { ProofResult, Suggestion } from '@server/core/types';
 
@@ -30,7 +31,8 @@ export const ProofBanner = ({ proof, suggestions = [], onApply, busy = false }: 
       <p>
         <strong>This task could break your rules.</strong> Z3 found a payment it would allow:{' '}
         <span className="mono">
-          {formatCents(payment.amountCents)} · {payment.category} · {payment.merchantId} · {payment.itemCount} item(s)
+          {formatCents(payment.amountCents)} · {categoryLabel(payment.category)} ·{' '}
+          {payment.merchantId.startsWith('<') ? 'any other shop' : payment.merchantId} · {payment.itemCount} item(s)
         </span>{' '}
         after {formatCents(state.spentInTaskCents)} already spent on the task. That breaks:
       </p>

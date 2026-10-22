@@ -1,3 +1,4 @@
+import { categoryLabel } from '@server/core/labels';
 import { formatCents } from '@server/core/money';
 import { CATEGORIES, type Guardrails } from '@server/core/types';
 import type { Merchant } from '@server/infra/catalog';
@@ -19,7 +20,7 @@ export const GuardrailsPanel = ({ guardrails, merchants, spentTodayCents, onSave
   const usedPct = Math.min(100, (spentTodayCents / Math.max(1, guardrails.dailyLimitCents)) * 100);
 
   return (
-    <Panel title="Guardrails" aside={<span className="muted">set by you, never by the agent</span>}>
+    <Panel title="Your rules" aside={<span className="muted">the agent can never change these</span>}>
       <div className="meter">
         <div className="meter__label">
           <span>Spent today</span>
@@ -52,6 +53,7 @@ export const GuardrailsPanel = ({ guardrails, merchants, spentTodayCents, onSave
         <Chips
           tone="bad"
           options={CATEGORIES}
+          format={categoryLabel}
           selected={draft.blockedCategories}
           onToggle={(c) => setDraft({ ...draft, blockedCategories: toggle(draft.blockedCategories, c) })}
         />
@@ -59,18 +61,19 @@ export const GuardrailsPanel = ({ guardrails, merchants, spentTodayCents, onSave
 
       <div className="field">
         <span>
-          Merchant allowlist{' '}
+          Allowed shops{' '}
           <button
             type="button"
             className="link"
             onClick={() => setDraft({ ...draft, allowedMerchants: draft.allowedMerchants === null ? [] : null })}
           >
-            {draft.allowedMerchants === null ? '(any — restrict)' : '(allow any)'}
+            {draft.allowedMerchants === null ? '(any shop — restrict)' : '(allow any shop)'}
           </button>
         </span>
         {draft.allowedMerchants !== null && (
           <Chips
             options={merchants.map((m) => m.id)}
+            format={(id) => merchants.find((m) => m.id === id)?.name ?? id}
             selected={draft.allowedMerchants}
             onToggle={(id) => setDraft({ ...draft, allowedMerchants: toggle(draft.allowedMerchants ?? [], id) })}
           />
@@ -78,7 +81,7 @@ export const GuardrailsPanel = ({ guardrails, merchants, spentTodayCents, onSave
       </div>
 
       <button type="button" className="btn" disabled={!dirty} onClick={() => void onSave(draft)}>
-        Save guardrails
+        Save rules
       </button>
     </Panel>
   );

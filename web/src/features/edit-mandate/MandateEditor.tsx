@@ -1,3 +1,4 @@
+import { categoryLabel } from '@server/core/labels';
 import { CATEGORIES, type Mandate } from '@server/core/types';
 import type { Merchant } from '@server/infra/catalog';
 import { useEffect, useState } from 'react';
@@ -18,7 +19,7 @@ export const MandateEditor = ({ mandate, merchants, busy, submitLabel, onSubmit 
   return (
     <div className="mandate">
       <label className="field">
-        <span>Goal</span>
+        <span>What to buy</span>
         <input value={draft.goal} onChange={(e) => setDraft({ ...draft, goal: e.target.value })} />
       </label>
       <div className="row">
@@ -57,27 +58,29 @@ export const MandateEditor = ({ mandate, merchants, busy, submitLabel, onSubmit 
         </label>
       </div>
       <div className="field">
-        <span>Allowed categories</span>
+        <span>Can buy only</span>
         <Chips
           options={CATEGORIES}
+          format={categoryLabel}
           selected={draft.allowedCategories}
           onToggle={(c) => setDraft({ ...draft, allowedCategories: toggle(draft.allowedCategories, c) })}
         />
       </div>
       <div className="field">
         <span>
-          Merchants{' '}
+          Only from shops{' '}
           <button
             type="button"
             className="link"
             onClick={() => setDraft({ ...draft, allowedMerchants: draft.allowedMerchants === null ? [] : null })}
           >
-            {draft.allowedMerchants === null ? '(any — restrict)' : '(allow any)'}
+            {draft.allowedMerchants === null ? '(any shop — restrict)' : '(allow any shop)'}
           </button>
         </span>
         {draft.allowedMerchants !== null && (
           <Chips
             options={merchants.map((m) => m.id)}
+            format={(id) => merchants.find((m) => m.id === id)?.name ?? id}
             selected={draft.allowedMerchants}
             onToggle={(id) => setDraft({ ...draft, allowedMerchants: toggle(draft.allowedMerchants ?? [], id) })}
           />

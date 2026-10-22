@@ -1,4 +1,5 @@
 import { add, le, not, num, oneOf, v, type Constraint } from './constraint';
+import { categoryList } from './labels';
 import { formatCents } from './money';
 import type { Guardrails, Mandate } from './types';
 
@@ -28,7 +29,7 @@ export const guardrailConstraints = (g: Guardrails): Constraint[] => {
     constraints.push({
       id: 'g.blocked_categories',
       source: 'guardrail',
-      description: `Not a blocked category (${g.blockedCategories.join(', ')})`,
+      description: `Not a blocked category (${categoryList(g.blockedCategories)})`,
       expr: not(oneOf('category', g.blockedCategories)),
     });
   }
@@ -56,7 +57,7 @@ export const mandateConstraints = (m: Mandate): Constraint[] => {
     {
       id: 'm.categories',
       source: 'mandate',
-      description: `Only what this task is for (${m.allowedCategories.join(', ')})`,
+      description: `Only what this task is for (${categoryList(m.allowedCategories)})`,
       expr: oneOf('category', m.allowedCategories),
     },
     {
