@@ -1,0 +1,76 @@
+import { CATEGORIES, type Mandate } from '@server/core/types';
+import type { Merchant } from '@server/infra/catalog';
+import { useEffect, useState } from 'react';
+import { Chips, DollarInput, toggle } from '../../shared/ui';
+
+interface Props {
+  readonly mandate: Mandate;
+  readonly merchants: readonly Merchant[];
+  readonly busy: boolean;
+  readonly submitLabel: string;
+  readonly onSubmit: (m: Mandate) => void;
+}
+
+export const MandateEditor = ({ mandate, merchants, busy, submitLabel, onSubmit }: Props) => {
+  const [draft, setDraft] = useState(mandate);
+  useEffect(() => setDraft(mandate), [mandate]);
+
+  return (
+    <div className="mandate">
+      <label className="field">
+        <span>Goal</span>
+        <input value={draft.goal} onChange={(e) => setDraft({ ...draft, goal: e.target.value })} />
+      </label>
+      <div className="row">
+        <label className="field">
+          <span>Task budget</span>
+          <DollarInput cents={draft.budgetCents} onChange={(c) => setDraft({ ...draft, budgetCents: c })} />
+        </label>
+        <label className="field">
+          <span>Max items / payment</span>
+          <input
+            type="number"
+            min={1}
+            value={draft.maxItems}
+            onChange={(e) => setDraft({ ...draft, maxItems: Math.max(1, Math.round(Number(e.target.value))) })}
+          />
+        </label>
+      </div>
+      <div className="field">
+        <span>Allowed categories</span>
+        <Chips
+          options={CATEGORIES}
+          selected={draft.allowedCategories}
+          onToggle={(c) => setDraft({ ...draft, allowedCategories: toggle(draft.allowedCategories, c) })}
+        />
+      </div>
+      <div className="field">
+        <span>
+          Merchants{' '}
+          <button
+            type="button"
+            className="link"
+            onClick={() => setDraft({ ...draft, allowedMerchants: draft.allowedMerchants === null ? [] : null })}
+          >
+            {draft.allowedMerchants === null ? '(any — restrict)' : '(allow any)'}
+          </button>
+        </span>
+        {draft.allowedMerchants !== null && (
+          <Chips
+            options={merchants.map((m) => m.id)}
+            selected={draft.allowedMerchants}
+            onToggle={(id) => setDraft({ ...draft, allowedMerchants: toggle(draft.allowedMerchants ?? [], id) })}
+          />
+        )}
+      </div>
+      <button
+        type="button"
+        className="btn btn--ghost"
+        disabled={busy || draft.allowedCategories.length === 0}
+        onClick={() => onSubmit(draft)}
+      >
+        {submitLabel}
+      </button>
+    </div>
+  );
+};
