@@ -1,12 +1,12 @@
 import type { AgentEvent, TaskView } from '@server/app/dto';
-import type { Mandate } from '@server/core/types';
+import type { Mandate, Suggestion } from '@server/core/types';
 import type { Merchant, Product } from '@server/infra/catalog';
 import { useEffect, useRef, useState } from 'react';
 import { OutcomeCard } from '../../entities/outcome/OutcomeCard';
 import { ProofBanner } from '../../entities/proof/ProofBanner';
 import { api, streamAgent } from '../../shared/api';
-import { Panel } from '../../shared/ui';
 import { MandateEditor } from '../../features/edit-mandate/MandateEditor';
+import { Panel } from '../../shared/ui';
 
 const DEFAULT_PROMPT =
   'Buy me noise-cancelling headphones or earbuds from SoundHub, up to $150. Check the Nova earbuds page too.';
@@ -14,6 +14,7 @@ const DEFAULT_PROMPT =
 const MANUAL_MANDATE: Mandate = {
   goal: 'Buy noise-cancelling headphones or earbuds from SoundHub',
   budgetCents: 150_00,
+  maxPerPaymentCents: null,
   allowedCategories: ['electronics'],
   allowedMerchants: ['soundhub'],
   maxItems: 1,
@@ -23,10 +24,10 @@ interface Props {
   readonly llmAvailable: boolean;
   readonly merchants: readonly Merchant[];
   readonly products: readonly Product[];
-  readonly onPaymentsChanged: () => void;
+  readonly onStateChanged: () => void;
 }
 
-export const AgentRun = ({ llmAvailable, merchants, products, onPaymentsChanged }: Props) => {
+export const AgentRun = ({ llmAvailable, merchants, products, onStateChanged }: Props) => {
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
   const [task, setTask] = useState<TaskView | null>(null);
   const [events, setEvents] = useState<AgentEvent[]>([]);
@@ -60,13 +61,25 @@ export const AgentRun = ({ llmAvailable, merchants, products, onPaymentsChanged 
       if (task) setTask(await api.updateMandate(task.id, mandate));
     });
 
+  const applySuggestion = (s: Suggestion) =>
+    guard(async () => {
+      if (!task) return;
+      if (s.kind === 'narrow-mandate') {
+        setTask(await api.updateMandate(task.id, s.mandate));
+        return;
+      }
+      await api.saveGuardrails(s.guardrails);
+      onStateChanged();
+      setTask(await api.updateMandate(task.id, task.mandate));
+    });
+
   const run = () => {
     if (!task) return;
     setEvents([]);
     setRunning(true);
     stopRef.current = streamAgent(task.id, (event) => {
       setEvents((prev) => [...prev, event]);
-      if (event.type === 'checkout') onPaymentsChanged();
+      if (event.type === 'checkout') onStateChanged();
       if (event.type === 'done' || event.type === 'error') setRunning(false);
     });
   };
@@ -91,7 +104,12 @@ export const AgentRun = ({ llmAvailable, merchants, products, onPaymentsChanged 
 
       {task && (
         <Panel title="2 · Verify the mandate" aside={<span className="muted">only your prompt can grant permissions</span>}>
-          <ProofBanner proof={task.proof} />
+          <ProofBanner
+            proof={task.proof}
+            suggestions={task.suggestions}
+            busy={busy}
+            onApply={(s) => void applySuggestion(s)}
+          />
           <MandateEditor
             mandate={task.mandate}
             merchants={merchants}

@@ -65,7 +65,7 @@ export const AttackLab = ({ attacks, products }: Props) => {
                   </button>
                 </div>
               </header>
-              {result && result.task.proof.status !== 'proven' && <ProofBanner proof={result.task.proof} />}
+              {result && result.task.proof.status !== 'proven' && <ProofBanner proof={result.task.proof} suggestions={result.task.suggestions} />}
               {result?.task.outcomes.map((o, i) => <OutcomeCard key={i} outcome={o} products={products} />)}
             </article>
           );

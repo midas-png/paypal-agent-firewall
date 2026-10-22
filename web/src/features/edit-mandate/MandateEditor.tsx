@@ -26,6 +26,26 @@ export const MandateEditor = ({ mandate, merchants, busy, submitLabel, onSubmit 
           <span>Task budget</span>
           <DollarInput cents={draft.budgetCents} onChange={(c) => setDraft({ ...draft, budgetCents: c })} />
         </label>
+        <div className="field">
+          <span>
+            Max per payment{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() =>
+                setDraft({ ...draft, maxPerPaymentCents: draft.maxPerPaymentCents === null ? draft.budgetCents : null })
+              }
+            >
+              {draft.maxPerPaymentCents === null ? '(no cap — add)' : '(remove cap)'}
+            </button>
+          </span>
+          {draft.maxPerPaymentCents !== null && (
+            <DollarInput
+              cents={draft.maxPerPaymentCents}
+              onChange={(c) => setDraft({ ...draft, maxPerPaymentCents: c })}
+            />
+          )}
+        </div>
         <label className="field">
           <span>Max items / payment</span>
           <input

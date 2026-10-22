@@ -45,6 +45,8 @@ export interface Guardrails {
 export interface Mandate {
   readonly goal: string;
   readonly budgetCents: number;
+  /** null = no per-payment cap inside the task budget */
+  readonly maxPerPaymentCents: number | null;
   readonly allowedCategories: readonly Category[];
   /** null = any merchant allowed by guardrails */
   readonly allowedMerchants: readonly string[] | null;
@@ -66,6 +68,11 @@ export interface Decision {
   readonly state: SpendState;
   readonly checks: readonly CheckResult[];
 }
+
+/** A one-click fix offered when a mandate conflicts with guardrails. Always Z3-verified before it is offered. */
+export type Suggestion =
+  | { readonly kind: 'narrow-mandate'; readonly mandate: Mandate; readonly changes: readonly string[] }
+  | { readonly kind: 'relax-guardrails'; readonly guardrails: Guardrails; readonly changes: readonly string[] };
 
 export type ProofResult =
   | { readonly status: 'proven'; readonly durationMs: number }

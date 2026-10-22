@@ -14,6 +14,7 @@ const guardrails: Guardrails = {
 const mandate: Mandate = {
   goal: 'Buy headphones',
   budgetCents: 150_00,
+  maxPerPaymentCents: null,
   allowedCategories: ['electronics'],
   allowedMerchants: null,
   maxItems: 2,

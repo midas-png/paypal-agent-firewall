@@ -15,6 +15,7 @@ export const GuardrailsSchema = z.object({
 export const MandateSchema = z.object({
   goal: z.string().min(1),
   budgetCents: cents,
+  maxPerPaymentCents: cents.nullable(),
   allowedCategories: z.array(CategorySchema).min(1),
   allowedMerchants: z.array(z.string().min(1)).nullable(),
   maxItems: z.number().int().min(1),
@@ -24,6 +25,11 @@ export const MandateSchema = z.object({
 export const LlmMandateSchema = z.object({
   goal: z.string().describe('One sentence: what the user wants bought'),
   budgetUsd: z.number().positive().describe('Total budget for this task in USD, as stated by the user'),
+  maxPerPaymentUsd: z
+    .number()
+    .positive()
+    .nullable()
+    .describe('Per-purchase cap in USD only if the user stated one, otherwise null'),
   allowedCategories: z
     .array(CategorySchema)
     .min(1)

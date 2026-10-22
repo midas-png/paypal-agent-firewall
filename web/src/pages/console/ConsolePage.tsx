@@ -70,7 +70,7 @@ export const ConsolePage = () => {
               llmAvailable={state.llmAvailable}
               merchants={state.merchants}
               products={state.products}
-              onPaymentsChanged={refresh}
+              onStateChanged={refresh}
             />
           ) : (
             <AttackLab attacks={state.attacks} products={state.products} />

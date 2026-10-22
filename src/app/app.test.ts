@@ -31,6 +31,7 @@ describe('firewall service', () => {
   const mandate = {
     goal: 'test',
     budgetCents: 150_00,
+    maxPerPaymentCents: null,
     allowedCategories: ['electronics'] as const,
     allowedMerchants: null,
     maxItems: 1,
@@ -41,6 +42,23 @@ describe('firewall service', () => {
     const task = await service.createTask('x', { ...mandate, allowedCategories: ['gift_cards'] });
     expect(task.proof.status).toBe('counterexample');
     expect((await service.checkout(task.id, { productId: 'sh-aurora', quantity: 1 })).status).toBe('rejected');
+  });
+
+  it('attaches verified suggestions to a conflicting mandate', async () => {
+    const service = createFirewallService({ gateway: slowGateway });
+    const task = await service.createTask('x', { ...mandate, budgetCents: 300_00 });
+    expect(task.suggestions.map((s) => s.kind)).toEqual(['narrow-mandate', 'relax-guardrails']);
+  });
+
+  it('re-proves the mandate when guardrails change after the proof', async () => {
+    const service = createFirewallService({ gateway: slowGateway });
+    const task = await service.createTask('x', mandate);
+    expect(task.proof.status).toBe('proven');
+
+    service.setGuardrails({ ...DEFAULT_GUARDRAILS, blockedCategories: ['electronics'] });
+    const outcome = await service.checkout(task.id, { productId: 'sh-aurora', quantity: 1 });
+    expect(outcome.status).toBe('rejected');
+    expect(service.getTask(task.id).proof.status).toBe('counterexample');
   });
 
   it('rolls back the reservation when the gateway fails', async () => {

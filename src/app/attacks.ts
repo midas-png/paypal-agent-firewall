@@ -13,6 +13,7 @@ const PROMPT = 'Buy noise-cancelling headphones from SoundHub, up to $150.';
 const MANDATE: Mandate = {
   goal: 'Buy noise-cancelling headphones from SoundHub',
   budgetCents: 150_00,
+  maxPerPaymentCents: null,
   allowedCategories: ['electronics'],
   allowedMerchants: ['soundhub'],
   maxItems: 2,

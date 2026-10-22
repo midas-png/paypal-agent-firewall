@@ -22,6 +22,7 @@ export const extractMandate = async (model: LanguageModelV1, prompt: string): Pr
   return {
     goal: object.goal,
     budgetCents: Math.round(object.budgetUsd * 100),
+    maxPerPaymentCents: object.maxPerPaymentUsd === null ? null : Math.round(object.maxPerPaymentUsd * 100),
     allowedCategories: object.allowedCategories,
     allowedMerchants: object.allowedMerchants,
     maxItems: object.maxItems,

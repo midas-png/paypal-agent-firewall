@@ -128,3 +128,12 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .attack__head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
 .attack__head .muted { font-size: 13px; }
 .attack__actions { display: flex; gap: 8px; align-items: center; }
+
+.proof { display: grid; gap: 8px; }
+.suggestions { display: grid; gap: 8px; margin-top: 4px; }
+.suggestion {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+}
+.suggestion ul { margin: 4px 0 0; padding-left: 18px; font-size: 13px; }
+.proof--ok { display: block; }

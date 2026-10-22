@@ -20,7 +20,11 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/).
 
 1. **Guardrails**: standing rules the human configures, such as the per-payment limit, the daily limit, blocked categories and the merchant allowlist.
 2. **Mandate**: a narrow permission for one task, which the LLM extracts **only from the user's own prompt**. Tool output and web pages never reach this step, so injected text cannot widen permissions.
-3. **Proof**: the Z3 SMT solver checks `unsat(mandate(p) ∧ ¬guardrails(p))` over *all* possible payments `p`. When that check fails, the UI shows the exact payment that would slip through, and payments stay disabled until the mandate is narrowed.
+3. **Proof**: the Z3 SMT solver checks `unsat(mandate(p) ∧ ¬guardrails(p))` over *all* possible payments `p`. When that check fails, the UI shows the exact payment that would slip through and offers one-click fixes, each **re-verified by Z3** before it is shown:
+   - *narrow the mandate*: drop blocked categories, restrict merchants, cap each payment, or cap the budget at what is left of today's limit;
+   - *add slack to money limits*: raise the per-payment or daily limit. This is never offered for blocked categories or merchants.
+
+   A mandate can carry its own per-payment cap, so "up to $300 total, at most $200 at a time" is provable. If guardrails change after a proof, the mandate is re-proven before the next payment.
 4. **Runtime check**: the agent pays only through a guarded `checkout` tool. The firewall resolves price and category from the merchant catalog, evaluates every rule against the cumulative spend, reserves the amount (so concurrent calls can't race past limits) and then creates the order through the **PayPal Agent Toolkit** (`create_order`, sandbox).
 5. **Attack Lab**: replays six attacks without depending on whether a given LLM falls for them: prompt injection, upsell, split payments, lookalike merchant, quantity bomb, plus a legitimate baseline.
 
@@ -46,6 +50,8 @@ npm test
 | `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` | Enables mandate extraction and the live agent. Attack Lab works without them. |
 | `LLM_PROVIDER`, `LLM_MODEL` | Optional overrides. |
 
+**Deploy:** `render.yaml` is included. Create a Render Blueprint from the repo and add the keys as secrets.
+
 ## AI tools used
 
 - **Vercel AI SDK**: structured mandate extraction (`generateObject`) and a tool-calling shopping agent (`generateText`), with Claude or GPT.
@@ -55,7 +61,7 @@ npm test
 ## Project layout
 
 ```
-src/core     pure domain: types, constraint AST, evaluator, Z3 prover, decision
+src/core     pure domain: types, constraint AST, evaluator, Z3 prover, decision, repair suggestions
 src/infra    catalog, PayPal gateway (toolkit / dry-run), LLM factory
 src/app      firewall service, mandate extraction, agent, attack lab
 src/server   Hono API + SSE
@@ -64,7 +70,7 @@ web/src      React UI (Feature-Sliced: app / pages / widgets / features / entiti
 
 ## Limitations
 
-- State lives in memory. A creation of an order counts as spend, which is conservative.
+- State lives in memory. Creating an order counts as spend, which is conservative.
 - The proof assumes no other spender is active during the task. The runtime check still enforces the real daily total.
 - The catalog is a demo fixture that stands in for a merchant's structured product feed.
 

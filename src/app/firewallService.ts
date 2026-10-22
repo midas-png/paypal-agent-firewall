@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { decide } from '../core/firewall';
 import { guardrailConstraints, mandateConstraints } from '../core/policy';
-import { proveMandateWithinGuardrails } from '../core/prover';
+import { proveMandate, suggestFixes } from '../core/suggest';
 import type { Guardrails, Mandate, Payment } from '../core/types';
 import { findMerchant, findProduct } from '../infra/catalog';
 import type { PaymentGateway } from '../infra/paymentGateway';
@@ -30,13 +30,8 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
   let guardrails = deps.guardrails ?? DEFAULT_GUARDRAILS;
   let spentTodayCents = deps.spentTodayCents ?? 0;
   const tasks = new Map<string, TaskView>();
-
-  const prove = (mandate: Mandate) =>
-    proveMandateWithinGuardrails({
-      mandate: mandateConstraints(mandate),
-      guardrails: guardrailConstraints(guardrails),
-      spentTodayBeforeTaskCents: spentTodayCents,
-    });
+  /** Which guardrails each task's proof was made against; a change invalidates the proof. */
+  const provenAgainst = new Map<string, Guardrails>();
 
   const save = (task: TaskView): TaskView => {
     tasks.set(task.id, task);
@@ -49,6 +44,24 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
     return task;
   };
 
+  /** Proves the mandate and, on conflict, attaches Z3-verified fixes. */
+  const verify = async (task: TaskView, mandate: Mandate): Promise<TaskView> => {
+    // Spend made before this task started; the prover adds the task's own spend symbolically.
+    const spentBeforeTask = spentTodayCents - task.spentInTaskCents;
+    const proof = await proveMandate(mandate, guardrails, spentBeforeTask);
+    const suggestions =
+      proof.status === 'proven'
+        ? []
+        : await suggestFixes({
+            mandate,
+            guardrails,
+            spentTodayCents: spentBeforeTask,
+            violatedIds: proof.violated.map((c) => c.constraintId),
+          });
+    provenAgainst.set(task.id, guardrails);
+    return save({ ...task, mandate, proof, suggestions });
+  };
+
   const record = (taskId: string, outcome: CheckoutOutcome, spentDeltaCents = 0): CheckoutOutcome => {
     const task = requireTask(taskId);
     save({ ...task, spentInTaskCents: task.spentInTaskCents + spentDeltaCents, outcomes: [...task.outcomes, outcome] });
@@ -56,7 +69,8 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
   };
 
   const checkout = async (taskId: string, request: CheckoutRequest): Promise<CheckoutOutcome> => {
-    const task = requireTask(taskId);
+    const current = requireTask(taskId);
+    const task = provenAgainst.get(taskId) === guardrails ? current : await verify(current, current.mandate);
     if (task.proof.status !== 'proven') {
       return record(taskId, { status: 'rejected', request, reason: 'Mandate is not proven safe; payments disabled' });
     }
@@ -97,6 +111,16 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
     }
   };
 
+  const emptyTask = (prompt: string, mandate: Mandate): TaskView => ({
+    id: randomUUID(),
+    prompt,
+    mandate,
+    proof: { status: 'proven', durationMs: 0 }, // placeholder, replaced by verify()
+    suggestions: [],
+    spentInTaskCents: 0,
+    outcomes: [],
+  });
+
   return {
     getGuardrails: (): Guardrails => guardrails,
     setGuardrails: (next: Guardrails): void => {
@@ -107,10 +131,8 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
       spentTodayCents = 0;
     },
     getTask: requireTask,
-    createTask: async (prompt: string, mandate: Mandate): Promise<TaskView> =>
-      save({ id: randomUUID(), prompt, mandate, proof: await prove(mandate), spentInTaskCents: 0, outcomes: [] }),
-    updateMandate: async (taskId: string, mandate: Mandate): Promise<TaskView> =>
-      save({ ...requireTask(taskId), mandate, proof: await prove(mandate) }),
+    createTask: (prompt: string, mandate: Mandate): Promise<TaskView> => verify(emptyTask(prompt, mandate), mandate),
+    updateMandate: (taskId: string, mandate: Mandate): Promise<TaskView> => verify(requireTask(taskId), mandate),
     checkout,
   };
 };

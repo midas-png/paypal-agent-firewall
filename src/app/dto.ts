@@ -1,5 +1,5 @@
 import type { z } from 'zod';
-import type { Decision, Guardrails, Mandate, ProofResult } from '../core/types';
+import type { Decision, Guardrails, Mandate, ProofResult, Suggestion } from '../core/types';
 import type { Merchant, Product } from '../infra/catalog';
 import type { GatewayMode, OrderReceipt } from '../infra/paymentGateway';
 import type { CheckoutRequestSchema } from './schemas';
@@ -19,6 +19,8 @@ export interface TaskView {
   readonly prompt: string;
   readonly mandate: Mandate;
   readonly proof: ProofResult;
+  /** Z3-verified fixes, present only when the proof found a counterexample. */
+  readonly suggestions: readonly Suggestion[];
   readonly spentInTaskCents: number;
   readonly outcomes: readonly CheckoutOutcome[];
 }

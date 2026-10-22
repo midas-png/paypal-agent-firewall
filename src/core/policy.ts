@@ -67,6 +67,15 @@ export const mandateConstraints = (m: Mandate): Constraint[] => {
     },
   ];
 
+  if (m.maxPerPaymentCents !== null) {
+    constraints.push({
+      id: 'm.max_per_payment',
+      source: 'mandate',
+      description: `Single payment ≤ ${formatCents(m.maxPerPaymentCents)}`,
+      expr: le(v('amountCents'), num(m.maxPerPaymentCents)),
+    });
+  }
+
   if (m.allowedMerchants !== null) {
     constraints.push({
       id: 'm.merchants',
