@@ -45,7 +45,18 @@ const PayPalOrderSchema = z.object({
   status: z.string(),
   links: z.array(z.object({ href: z.string(), rel: z.string() })).default([]),
 });
+const PayPalCaptureSchema = z.object({ status: z.enum(['success', 'error']), response: z.unknown() });
 const PayPalErrorSchema = z.object({ error: z.object({ message: z.string() }) });
+
+/** The toolkit wraps a capture as `{ status: 'success' | 'error', response: <PayPal order> }`. */
+export const parseCapture = (json: unknown): CaptureResult => {
+  const { status, response } = PayPalCaptureSchema.parse(json);
+  const order = PayPalOrderSchema.safeParse(response);
+  if (status !== 'success' || !order.success) {
+    throw new Error(`PayPal did not capture the payment: ${JSON.stringify(response).slice(0, 300)}`);
+  }
+  return { orderId: order.data.id, status: order.data.status };
+};
 
 /** Toolkit tools return JSON strings; errors come back as `{ error }` rather than throwing. */
 const runTool = async (tool: Tool | undefined, args: object): Promise<unknown> => {
@@ -62,7 +73,7 @@ const createPayPalGateway = (clientId: string, clientSecret: string, config: Gat
   const toolkit = new PayPalAgentToolkit({
     clientId,
     clientSecret,
-    configuration: { actions: { orders: { create: true, capture: true } }, context: { sandbox: true } },
+    configuration: { actions: { orders: { create: true, get: true, capture: true } }, context: { sandbox: true } },
   });
   const tools = toolkit.getTools();
 
@@ -87,8 +98,14 @@ const createPayPalGateway = (clientId: string, clientSecret: string, config: Gat
       return { orderId: order.id, status: order.status, approveUrl: approve?.href ?? null, mode: 'paypal-sandbox' };
     },
     async captureOrder(orderId) {
-      const capture = PayPalOrderSchema.parse(await runTool(tools['pay_order'], { id: orderId }));
-      return { orderId: capture.id, status: capture.status };
+      try {
+        return parseCapture(await runTool(tools['pay_order'], { id: orderId }));
+      } catch (captureError) {
+        // Already captured (return page reloaded, or a previous attempt succeeded): report the real state.
+        const order = PayPalOrderSchema.safeParse(await runTool(tools['get_order'], { id: orderId }).catch(() => null));
+        if (order.success && order.data.status === 'COMPLETED') return { orderId: order.data.id, status: 'COMPLETED' };
+        throw captureError;
+      }
     },
   };
 };

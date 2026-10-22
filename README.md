@@ -44,6 +44,17 @@ Rules are written once as a small AST (`src/core/constraint.ts`). The AST is the
 - **concretely** (`evaluate.ts`): fast, explainable per-payment decisions;
 - **symbolically** (`prover.ts`): a Z3 encoding for the subset proof. Merchant and category become integers over a finite universe, which is every literal in the rules plus one "unmentioned" value. That is sound because the rules can't tell unmentioned values apart.
 
+## Use it from Claude Desktop (MCP)
+
+Nobody shops in a firewall dashboard. People shop by chatting with the assistant they already use, so the firewall also ships as an **MCP server**. Claude (or any MCP client) gets five tools: `request_spending_permission`, `search_products`, `view_product`, `checkout` and `get_spending_status`. Every payment still goes through the firewall, and the web console becomes the control panel: your rules plus a live **Activity** feed of what the assistant tried and what was allowed or blocked.
+
+```bash
+npm run dev          # firewall API + console
+npm run mcp:config   # prints the Claude Desktop config entry with absolute paths
+```
+
+Paste the printed entry into Claude Desktop → Settings → Developer → Edit Config, restart Claude, then ask: *"Buy me noise-cancelling headphones from SoundHub, up to $150"*. The MCP bridge is stateless: it calls the firewall API, so the console and the assistant always agree.
+
 ## Run
 
 ```bash
@@ -74,7 +85,8 @@ npm test
 src/core     pure domain: types, constraint AST, evaluator, Z3 prover, decision, repair suggestions
 src/infra    catalog, PayPal gateway (toolkit / dry-run), LLM factory
 src/app      firewall service, mandate extraction, agent, attack lab
-src/server   Hono API + SSE
+src/server   Hono API + SSE, PayPal return/capture page
+src/mcp      MCP server (stdio) for Claude Desktop and other MCP clients
 web/src      React UI (Feature-Sliced: app / pages / widgets / features / entities / shared)
 ```
 

@@ -19,8 +19,13 @@ export type CheckoutOutcome =
   | { readonly status: 'failed'; readonly request: CheckoutRequest; readonly decision: Decision; readonly error: string }
   | { readonly status: 'approved'; readonly request: CheckoutRequest; readonly decision: Decision; readonly receipt: OrderReceipt };
 
+/** Where a task came from: this web console or an AI assistant connected over MCP. */
+export type TaskOrigin = 'console' | 'mcp';
+
 export interface TaskView {
   readonly id: string;
+  readonly origin: TaskOrigin;
+  readonly createdAt: string;
   readonly prompt: string;
   readonly mandate: Mandate;
   readonly proof: ProofResult;

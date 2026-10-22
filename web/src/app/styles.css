@@ -198,3 +198,11 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .meter__foot { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 12px; }
 .meter__foot .link { flex-shrink: 0; }
 .evidence__title { white-space: nowrap; }
+
+.activity { display: grid; gap: 14px; }
+.activity__task { display: grid; gap: 10px; border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+.activity__head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.activity__head p { font-size: 13px; margin-top: 2px; }
+.connect { display: grid; gap: 4px; padding: 14px; border: 1px dashed var(--border); border-radius: 8px; font-size: 14px; }
+.connect--compact { font-size: 13px; }
+code { font-family: var(--mono); font-size: 12px; background: var(--surface-2); padding: 1px 6px; border-radius: 4px; }

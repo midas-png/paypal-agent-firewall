@@ -38,6 +38,7 @@ export const api = {
   saveGuardrails: (g: Guardrails) => send<Guardrails>('PUT', '/api/guardrails', g),
   resetDay: () => send<{ spentTodayCents: number }>('POST', '/api/day/reset'),
   createTask: (prompt: string, mandate?: Mandate) => send<TaskView>('POST', '/api/tasks', { prompt, mandate }),
+  listTasks: () => request<TaskView[]>('/api/tasks'),
   getTask: (taskId: string) => request<TaskView>(`/api/tasks/${taskId}`),
   updateMandate: (taskId: string, mandate: Mandate) => send<TaskView>('PUT', `/api/tasks/${taskId}/mandate`, mandate),
   runAttack: (id: string) => send<AttackRunView>('POST', `/api/attacks/${id}`),

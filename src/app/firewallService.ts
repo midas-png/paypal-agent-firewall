@@ -6,7 +6,7 @@ import type { Guardrails, Mandate, Payment } from '../core/types';
 import { findMerchant, findProduct } from '../infra/catalog';
 import type { PaymentGateway } from '../infra/paymentGateway';
 import type { StateStore } from '../infra/stateStore';
-import type { CheckoutOutcome, CheckoutRequest, TaskView } from './dto';
+import type { CheckoutOutcome, CheckoutRequest, TaskOrigin, TaskView } from './dto';
 
 export const DEFAULT_GUARDRAILS: Guardrails = {
   maxPerPaymentCents: 200_00,
@@ -41,7 +41,10 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
 
   let guardrails = snapshot?.guardrails ?? deps.guardrails ?? DEFAULT_GUARDRAILS;
   let spend = snapshot?.spend ?? { day: dayOf(now()), cents: deps.spentTodayCents ?? 0 };
-  const tasks = new Map<string, TaskView>((snapshot?.tasks ?? []).map((t) => [t.id, t]));
+  // Tasks saved before origin/createdAt existed get neutral defaults.
+  const tasks = new Map<string, TaskView>(
+    (snapshot?.tasks ?? []).map((t) => [t.id, { ...t, origin: t.origin ?? 'console', createdAt: t.createdAt ?? new Date(0).toISOString() }]),
+  );
   /** Which guardrails each task's proof was made against; a change (or a restart) forces a re-proof. */
   const provenAgainst = new Map<string, Guardrails>();
 
@@ -137,8 +140,10 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
     }
   };
 
-  const emptyTask = (prompt: string, mandate: Mandate): TaskView => ({
+  const emptyTask = (prompt: string, mandate: Mandate, origin: TaskOrigin): TaskView => ({
     id: randomUUID(),
+    origin,
+    createdAt: now().toISOString(),
     prompt,
     mandate,
     proof: { status: 'proven', durationMs: 0 }, // placeholder, replaced by verify()
@@ -159,7 +164,11 @@ export const createFirewallService = (deps: FirewallServiceDeps) => {
       persist();
     },
     getTask: requireTask,
-    createTask: (prompt: string, mandate: Mandate): Promise<TaskView> => verify(emptyTask(prompt, mandate), mandate),
+    createTask: (prompt: string, mandate: Mandate, origin: TaskOrigin = 'console'): Promise<TaskView> =>
+      verify(emptyTask(prompt, mandate, origin), mandate),
+    /** Newest first. */
+    listTasks: (limit = 20): TaskView[] =>
+      [...tasks.values()].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit),
     updateMandate: (taskId: string, mandate: Mandate): Promise<TaskView> => verify(requireTask(taskId), mandate),
     checkout,
     /** Reflects a PayPal capture (after buyer approval) in the task that created the order. */

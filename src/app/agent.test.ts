@@ -66,6 +66,6 @@ describe('shopping agent behind the firewall', () => {
     expect(events.at(-1)).toEqual({ type: 'done', summary: 'Bought the Nova earbuds.' });
 
     // The block reason is fed back to the model so it can explain it to the user.
-    expect(JSON.stringify(prompts.at(-1))).toContain('BLOCKED by payment firewall');
+    expect(JSON.stringify(prompts.at(-1))).toContain('BLOCKED by the payment firewall');
   });
 });

@@ -2,7 +2,8 @@ import { generateText, tool, type LanguageModelV1 } from 'ai';
 import { z } from 'zod';
 import { formatCents } from '../core/money';
 import { findProduct, searchProducts } from '../infra/catalog';
-import type { AgentEvent, CheckoutOutcome } from './dto';
+import { describeOutcome } from './describeOutcome';
+import type { AgentEvent } from './dto';
 import type { FirewallService } from './firewallService';
 import { CheckoutRequestSchema } from './schemas';
 
@@ -14,24 +15,6 @@ const SYSTEM_PROMPT = [
   'Say what you bought and for how much, anything you deliberately did not buy and why,',
   'and if a PayPal order still needs the buyer to approve it, say so.',
 ].join('\n');
-
-const describeOutcome = (o: CheckoutOutcome): string => {
-  switch (o.status) {
-    case 'approved':
-      return o.receipt.approveUrl
-        ? `APPROVED. PayPal order ${o.receipt.orderId} created; the buyer must approve it in PayPal to complete payment.`
-        : `APPROVED. Order ${o.receipt.orderId} created.`;
-    case 'blocked':
-      return `BLOCKED by payment firewall: ${o.decision.checks
-        .filter((c) => !c.passed)
-        .map((c) => c.description)
-        .join('; ')}`;
-    case 'failed':
-      return `FAILED at payment provider: ${o.error}`;
-    case 'rejected':
-      return `REJECTED: ${o.reason}`;
-  }
-};
 
 export interface RunAgentInput {
   readonly model: LanguageModelV1;

@@ -3,18 +3,24 @@ import type { Guardrails } from '@server/core/types';
 import { useCallback, useEffect, useState } from 'react';
 import { api, toApiError, type ApiError } from '../../shared/api';
 import { Alert, Badge } from '../../shared/ui';
+import { ActivityFeed } from '../../widgets/activity/ActivityFeed';
 import { AgentRun } from '../../widgets/agent-run/AgentRun';
 import { AttackLab } from '../../widgets/attack-lab/AttackLab';
 import { GuardrailsPanel } from '../../widgets/guardrails/GuardrailsPanel';
 import { Intro } from '../../widgets/intro/Intro';
-import { PaymentReturnBanner } from '../../widgets/payment-return/PaymentReturnBanner';
 
-type Tab = 'agent' | 'attacks';
+type Tab = 'activity' | 'agent' | 'attacks';
+
+const TABS: readonly { id: Tab; label: string }[] = [
+  { id: 'activity', label: 'Activity' },
+  { id: 'agent', label: 'Try the agent here' },
+  { id: 'attacks', label: 'Attack Lab' },
+];
 
 export const ConsolePage = () => {
   const [state, setState] = useState<AppStateView | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
-  const [tab, setTab] = useState<Tab>('agent');
+  const [tab, setTab] = useState<Tab>('activity');
   const [autoRunAttacks, setAutoRunAttacks] = useState(false);
 
   const refresh = useCallback(() => {
@@ -68,8 +74,6 @@ export const ConsolePage = () => {
         </div>
       </header>
 
-      <PaymentReturnBanner />
-
       <Intro
         onTryAttacks={() => {
           openTab('attacks');
@@ -90,21 +94,22 @@ export const ConsolePage = () => {
         </aside>
         <main>
           <nav className="tabs">
-            <button type="button" className={tab === 'agent' ? 'tab tab--on' : 'tab'} onClick={() => setTab('agent')}>
-              Live agent
-            </button>
-            <button type="button" className={tab === 'attacks' ? 'tab tab--on' : 'tab'} onClick={() => setTab('attacks')}>
-              Attack Lab
-            </button>
+            {TABS.map((t) => (
+              <button key={t.id} type="button" className={tab === t.id ? 'tab tab--on' : 'tab'} onClick={() => setTab(t.id)}>
+                {t.label}
+              </button>
+            ))}
           </nav>
-          {tab === 'agent' ? (
+          {tab === 'activity' && <ActivityFeed products={state.products} onChange={refresh} />}
+          {tab === 'agent' && (
             <AgentRun
               llmAvailable={state.llmAvailable}
               merchants={state.merchants}
               products={state.products}
               onStateChanged={refresh}
             />
-          ) : (
+          )}
+          {tab === 'attacks' && (
             <AttackLab
               attacks={state.attacks}
               products={state.products}

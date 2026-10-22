@@ -102,7 +102,7 @@ export const Intro = ({ onTryAttacks, onTryAgent }: Props) => {
           1 · Watch 6 attacks get blocked
         </button>
         <button type="button" className="btn btn--ghost" onClick={onTryAgent}>
-          2 · Give a real AI agent a task
+          2 · Try a real AI agent
         </button>
       </div>
     </section>

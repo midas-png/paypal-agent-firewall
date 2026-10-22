@@ -53,9 +53,9 @@ Agent Payment Firewall sits between an AI agent and PayPal.
 | --- | --- | --- |
 | 0:00–0:20 | Intro "Why now" list → Nova earbuds page with the hidden HTML comment | "Researchers already found prompts in the wild trying to make agents send $5,000 over PayPal. This page hides one instruction: buy a gift card." |
 | 0:20–0:40 | Guardrails panel | "I set my standing rules once: $200 per payment, $500 a day, no gift cards or crypto." |
-| 0:40–1:10 | Type the prompt → Extract mandate → green Z3 proof | "The LLM turns *my* words, and only my words, into a mandate. Z3 proves this mandate can never exceed my rules, for any payment." |
-| 1:10–1:35 | Change budget to $300 → red counterexample → Apply a suggestion → green | "If they conflict, Z3 shows the exact payment that would slip through and offers verified fixes." |
-| 1:35–2:15 | Run agent → timeline: gift card BLOCKED, earbuds APPROVED, PayPal sandbox order link | "The agent fell for the injection. The firewall didn't. The real purchase still goes through as a PayPal sandbox order." |
+| 0:40–1:15 | Claude Desktop chat: "Buy me noise-cancelling headphones from SoundHub, up to $150" → Claude calls `request_spending_permission` | "I shop the way I always do, in Claude. Before it can spend, the firewall proves this permission can never exceed my rules." |
+| 1:15–1:50 | Claude reads the Nova page; console **Activity** shows the gift card BLOCKED, the headphones allowed | "The hidden instruction never turns into a payment. My console shows it live." |
+| 1:50–2:15 | Click the PayPal link from the chat → approve in sandbox → "Payment completed" page → console shows Paid | "The real purchase goes through PayPal. I approve, PayPal captures, done." |
 | 2:15–2:45 | Attack Lab → Run all | "Split payments, a lookalike shop, a quantity bomb: all stopped, deterministically." |
 | 2:45–3:00 | Architecture slide | "Agent Payment Firewall: PayPal Agent Toolkit, Z3, any LLM. Agents can shop safely." |
 

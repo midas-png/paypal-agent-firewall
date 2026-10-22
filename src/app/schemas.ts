@@ -44,6 +44,7 @@ export const LlmMandateSchema = z.object({
 export const CreateTaskSchema = z.object({
   prompt: z.string().min(1),
   mandate: MandateSchema.optional(),
+  origin: z.enum(['console', 'mcp']).default('console'),
 });
 
 export const CheckoutRequestSchema = z.object({

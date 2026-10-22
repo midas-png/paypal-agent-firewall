@@ -7,14 +7,15 @@ import { listAttacks, runAttack } from '../app/attacks';
 import type { AgentEvent, AppStateView } from '../app/dto';
 import { createFirewallService } from '../app/firewallService';
 import { extractMandate } from '../app/mandate';
-import { CreateTaskSchema, GuardrailsSchema, MandateSchema } from '../app/schemas';
+import { CheckoutRequestSchema, CreateTaskSchema, GuardrailsSchema, MandateSchema } from '../app/schemas';
 import { MERCHANTS, PRODUCTS } from '../infra/catalog';
 import { createModel, describeLlmError, type UserFacingError } from '../infra/llm';
 import { createPaymentGateway } from '../infra/paymentGateway';
 import { createFileStateStore } from '../infra/stateStore';
+import { renderPaymentResult } from './paymentResultPage';
 
 const port = Number(process.env.PORT ?? 8787);
-/** Origin the browser uses; in dev this is the Vite server, which proxies /api here. */
+/** Public origin of this API server; PayPal sends buyers back here. */
 const publicUrl = (process.env.PUBLIC_URL ?? `http://localhost:${port}`).replace(/\/$/, '');
 const gateway = createPaymentGateway({
   clientId: process.env.PAYPAL_CLIENT_ID,
@@ -61,8 +62,8 @@ app.post('/api/day/reset', (c) => {
 });
 
 app.post('/api/tasks', async (c) => {
-  const { prompt, mandate } = CreateTaskSchema.parse(await c.req.json());
-  if (mandate) return c.json(await service.createTask(prompt, mandate));
+  const { prompt, mandate, origin } = CreateTaskSchema.parse(await c.req.json());
+  if (mandate) return c.json(await service.createTask(prompt, mandate, origin));
   if (!model) {
     return c.json({ error: fail('No AI model configured', 'Add ANTHROPIC_API_KEY or OPENAI_API_KEY to .env, or use the preset mandate.') }, 400);
   }
@@ -78,7 +79,14 @@ app.put('/api/tasks/:id/mandate', async (c) =>
   c.json(await service.updateMandate(c.req.param('id'), MandateSchema.parse(await c.req.json()))),
 );
 
+app.get('/api/tasks', (c) => c.json(service.listTasks()));
+
 app.get('/api/tasks/:id', (c) => c.json(service.getTask(c.req.param('id'))));
+
+/** Used by the MCP bridge: the AI assistant asks to pay, the firewall decides. */
+app.post('/api/tasks/:id/checkout', async (c) =>
+  c.json(await service.checkout(c.req.param('id'), CheckoutRequestSchema.parse(await c.req.json()))),
+);
 
 app.get('/api/tasks/:id/run', (c) => {
   const taskId = c.req.param('id');
@@ -115,23 +123,20 @@ app.post('/api/attacks/:id', async (c) =>
   ),
 );
 
-// PayPal redirects the buyer here after approving: collect the payment, then show the result in the app.
+// PayPal sends the buyer here after approving: collect the payment and show the result.
 app.get('/api/paypal/return', async (c) => {
   const orderId = c.req.query('token') ?? '';
-  const back = (params: Record<string, string>) => c.redirect(`${publicUrl}/?${new URLSearchParams(params).toString()}`);
   try {
     const capture = await gateway.captureOrder(orderId);
     service.recordCapture(capture.orderId, capture.status);
-    return back({ paypal: 'paid', order: capture.orderId });
+    return c.html(renderPaymentResult({ kind: 'paid', orderId: capture.orderId }));
   } catch (e) {
     console.error(e);
-    return back({ paypal: 'failed', order: orderId, reason: errorMessage(e) });
+    return c.html(renderPaymentResult({ kind: 'failed', orderId, reason: errorMessage(e) }), 502);
   }
 });
 
-app.get('/api/paypal/cancel', (c) =>
-  c.redirect(`${publicUrl}/?${new URLSearchParams({ paypal: 'cancelled', order: c.req.query('token') ?? '' }).toString()}`),
-);
+app.get('/api/paypal/cancel', (c) => c.html(renderPaymentResult({ kind: 'cancelled', orderId: c.req.query('token') ?? '' })));
 
 app.use('/*', serveStatic({ root: './dist/web' }));
 app.get('/*', serveStatic({ path: './dist/web/index.html' }));
