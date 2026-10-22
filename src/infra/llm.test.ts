@@ -5,6 +5,38 @@ import { createModel, describeLlmError } from './llm';
 const apiError = (statusCode: number, responseBody = '') =>
   new APICallError({ message: 'x', url: 'u', requestBodyValues: {}, statusCode, responseBody, isRetryable: false });
 
+describe('createModel', () => {
+  it('never sends a temperature (newer models reject it)', async () => {
+    const sent: unknown[] = [];
+    const fetchStub: typeof fetch = async (_url, init) => {
+      sent.push(JSON.parse(String(init?.body)));
+      return new Response(
+        JSON.stringify({
+          id: 'm',
+          type: 'message',
+          role: 'assistant',
+          model: 'x',
+          content: [{ type: 'text', text: 'ok' }],
+          stop_reason: 'end_turn',
+          usage: { input_tokens: 1, output_tokens: 1 },
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      );
+    };
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchStub;
+    try {
+      const model = createModel({ ANTHROPIC_API_KEY: 'k' });
+      if (!model) throw new Error('model expected');
+      const { generateText } = await import('ai');
+      await generateText({ model, prompt: 'hi' });
+    } finally {
+      globalThis.fetch = original;
+    }
+    expect(sent[0]).not.toHaveProperty('temperature');
+  });
+});
+
 describe('describeLlmError', () => {
   const model = createModel({ ANTHROPIC_API_KEY: 'k', LLM_MODEL: 'old-model' });
 
