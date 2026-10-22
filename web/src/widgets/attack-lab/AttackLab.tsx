@@ -1,6 +1,6 @@
 import type { AttackRunView, AttackScenarioView } from '@server/app/dto';
 import type { Product } from '@server/infra/catalog';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { OutcomeCard } from '../../entities/outcome/OutcomeCard';
 import { ProofBanner } from '../../entities/proof/ProofBanner';
 import { api } from '../../shared/api';
@@ -9,6 +9,9 @@ import { Badge, Panel } from '../../shared/ui';
 interface Props {
   readonly attacks: readonly AttackScenarioView[];
   readonly products: readonly Product[];
+  /** When true, runs every scenario once and reports back so the parent can clear the flag. */
+  readonly autoRun?: boolean;
+  readonly onAutoRunStarted?: () => void;
 }
 
 const verdictOf = (run: AttackRunView): { tone: 'ok' | 'bad'; label: string } => {
@@ -18,7 +21,7 @@ const verdictOf = (run: AttackRunView): { tone: 'ok' | 'bad'; label: string } =>
   return statuses.some((s) => s !== 'approved') ? { tone: 'ok', label: 'attack stopped' } : { tone: 'bad', label: 'attack passed' };
 };
 
-export const AttackLab = ({ attacks, products }: Props) => {
+export const AttackLab = ({ attacks, products, autoRun = false, onAutoRunStarted }: Props) => {
   const [runs, setRuns] = useState<Record<string, AttackRunView>>({});
   const [busy, setBusy] = useState(false);
 
@@ -33,6 +36,13 @@ export const AttackLab = ({ attacks, products }: Props) => {
       setBusy(false);
     }
   };
+
+  useEffect(() => {
+    if (!autoRun) return;
+    onAutoRunStarted?.();
+    void run(attacks.map((a) => a.id));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fire only when autoRun flips on
+  }, [autoRun]);
 
   return (
     <Panel
@@ -65,7 +75,9 @@ export const AttackLab = ({ attacks, products }: Props) => {
                   </button>
                 </div>
               </header>
-              {result && result.task.proof.status !== 'proven' && <ProofBanner proof={result.task.proof} suggestions={result.task.suggestions} />}
+              {result && result.task.proof.status !== 'proven' && (
+                <ProofBanner proof={result.task.proof} suggestions={result.task.suggestions} />
+              )}
               {result?.task.outcomes.map((o, i) => <OutcomeCard key={i} outcome={o} products={products} />)}
             </article>
           );

@@ -6,6 +6,7 @@ import { Badge } from '../../shared/ui';
 import { AgentRun } from '../../widgets/agent-run/AgentRun';
 import { AttackLab } from '../../widgets/attack-lab/AttackLab';
 import { GuardrailsPanel } from '../../widgets/guardrails/GuardrailsPanel';
+import { Intro } from '../../widgets/intro/Intro';
 
 type Tab = 'agent' | 'attacks';
 
@@ -13,6 +14,7 @@ export const ConsolePage = () => {
   const [state, setState] = useState<AppStateView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('agent');
+  const [autoRunAttacks, setAutoRunAttacks] = useState(false);
 
   const refresh = useCallback(() => {
     api.getState().then(setState, (e: unknown) => setError(String(e)));
@@ -31,6 +33,11 @@ export const ConsolePage = () => {
     refresh();
   };
 
+  const openTab = (next: Tab): void => {
+    setTab(next);
+    document.getElementById('workspace')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div className="page">
       <header className="top">
@@ -46,7 +53,15 @@ export const ConsolePage = () => {
         </div>
       </header>
 
-      <div className="layout">
+      <Intro
+        onTryAttacks={() => {
+          openTab('attacks');
+          setAutoRunAttacks(true);
+        }}
+        onTryAgent={() => openTab('agent')}
+      />
+
+      <div className="layout" id="workspace">
         <aside>
           <GuardrailsPanel
             guardrails={state.guardrails}
@@ -73,7 +88,12 @@ export const ConsolePage = () => {
               onStateChanged={refresh}
             />
           ) : (
-            <AttackLab attacks={state.attacks} products={state.products} />
+            <AttackLab
+              attacks={state.attacks}
+              products={state.products}
+              autoRun={autoRunAttacks}
+              onAutoRunStarted={() => setAutoRunAttacks(false)}
+            />
           )}
         </main>
       </div>
