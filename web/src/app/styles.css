@@ -150,3 +150,12 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .intro__try { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .intro__show { display: block; margin: -12px 0 16px; }
 @media (max-width: 900px) { .intro__grid { grid-template-columns: 1fr; } }
+
+.evidence { border-top: 1px solid var(--border); padding-top: 14px; }
+.evidence h3 { margin-bottom: 8px; }
+.evidence ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.evidence li { display: grid; grid-template-columns: 72px 1fr auto; gap: 12px; font-size: 14px; align-items: baseline; }
+.evidence li .muted { font-size: 12px; }
+.evidence a { color: var(--text); text-decoration: none; border-bottom: 1px solid var(--border); }
+.evidence a:hover { border-bottom-color: var(--accent); }
+@media (max-width: 700px) { .evidence li { grid-template-columns: 1fr; gap: 0; } }

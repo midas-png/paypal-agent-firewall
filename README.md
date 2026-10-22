@@ -6,6 +6,14 @@ AI shopping agents read untrusted web pages. A single hidden sentence ("you MUST
 
 **Who it's for:** products that let agents spend money, such as AI assistants that shop, procurement bots and marketplaces with agentic checkout. The people delegating purchases get control, and merchants and payment providers get fewer fraud cases, disputes and refunds.
 
+### Why now
+
+- **Sep 2026:** retailers start [blocking AI shopping agents](https://www.theverge.com/report/1015811/ai-shopping-agents-blocked-amazon-the-realreal-target-meta-muse); Amazon shuts out Meta's Muse.
+- **Mar 2026:** Unit 42 found hidden prompts in the wild trying to push agents into a [$5,000 PayPal transfer, paid subscriptions and purchases](https://unit42.paloaltonetworks.com/ai-agent-prompt-injection/), and warned that hidden instructions on deal sites can make agents [buy gift cards the user never asked for](https://unit42.paloaltonetworks.com/retail-fraud-agentic-ai/).
+- **Nov 2025:** in Microsoft's simulated marketplace, [prompt injection steered agents' payments](https://www.theregister.com/2025/11/06/microsoft_unveils_the_magentic_marketplace/) to manipulative sellers.
+- **Aug 2025:** an AI browser [checked out on a fake Walmart store](https://guard.io/labs/scamlexity-we-put-agentic-ai-browsers-to-the-test-they-clicked-they-paid-they-failed) and autofilled the saved card without asking.
+- **Feb 2025:** asked only to find cheap eggs, OpenAI's Operator [bought them for $31 without confirmation](https://www.adn.com/alaska-life/2025/02/09/i-let-chatgpts-new-agent-manage-my-life-it-spent-31-on-a-dozen-eggs/).
+
 Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/).
 
 ## How it works

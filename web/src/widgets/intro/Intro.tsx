@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { EVIDENCE } from './evidence';
 
 const STORAGE_KEY = 'apf.intro.hidden';
 
@@ -73,6 +74,21 @@ export const Intro = ({ onTryAttacks, onTryAgent }: Props) => {
             fraud cases, disputes and refunds.
           </p>
         </div>
+      </div>
+
+      <div className="evidence">
+        <h3>Why now</h3>
+        <ul>
+          {EVIDENCE.map((e) => (
+            <li key={e.url}>
+              <span className="mono muted">{e.date}</span>
+              <a href={e.url} target="_blank" rel="noreferrer">
+                {e.headline}
+              </a>
+              <span className="muted">{e.source}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="intro__try">
