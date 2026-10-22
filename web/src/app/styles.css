@@ -195,3 +195,5 @@ input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 
 .evidence[open] summary::before { transform: rotate(90deg); }
 .evidence__title { font-weight: 600; font-size: 15px; }
 .evidence ul { margin-top: 10px; }
+.meter__foot { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; font-size: 12px; }
+.meter__foot .link { flex-shrink: 0; }

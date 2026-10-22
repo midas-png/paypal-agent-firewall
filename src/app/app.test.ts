@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { listAttacks, runAttack } from './attacks';
 import { createFirewallService, DEFAULT_GUARDRAILS } from './firewallService';
 import { dryRunGateway, type PaymentGateway } from '../infra/paymentGateway';
+import type { PersistedState, StateStore } from '../infra/stateStore';
 
 const context = { guardrails: DEFAULT_GUARDRAILS, spentTodayCents: 0 };
 const statuses = async (id: string): Promise<string[]> =>
@@ -72,6 +73,28 @@ describe('firewall service', () => {
     expect(stored?.status === 'approved' && stored.receipt.status).toBe('COMPLETED');
   });
 
+  it('keeps today\'s spend and tasks across a restart', async () => {
+    const store = memoryStore();
+    const before = createFirewallService({ gateway: slowGateway, store });
+    const task = await before.createTask('x', mandate);
+    await before.checkout(task.id, { productId: 'sh-aurora', quantity: 1 });
+
+    const after = createFirewallService({ gateway: slowGateway, store });
+    expect(after.getSpentTodayCents()).toBe(129_00);
+    expect(after.getTask(task.id).outcomes).toHaveLength(1);
+  });
+
+  it('starts a new day from zero spend', async () => {
+    let clock = new Date(2026, 9, 22, 23, 50);
+    const service = createFirewallService({ gateway: slowGateway, now: () => clock });
+    const task = await service.createTask('x', mandate);
+    await service.checkout(task.id, { productId: 'sh-aurora', quantity: 1 });
+    expect(service.getSpentTodayCents()).toBe(129_00);
+
+    clock = new Date(2026, 9, 23, 0, 5);
+    expect(service.getSpentTodayCents()).toBe(0);
+  });
+
   it('rolls back the reservation when the gateway fails', async () => {
     const service = createFirewallService({ gateway: failingGateway });
     const task = await service.createTask('x', { ...mandate, allowedCategories: ['electronics'] });
@@ -104,4 +127,14 @@ const slowGateway: PaymentGateway = {
     await new Promise((r) => setTimeout(r, 20));
     return { orderId: 'X', status: 'CREATED', approveUrl: null, mode: 'dry-run' };
   },
+};
+
+const memoryStore = (): StateStore => {
+  let state: PersistedState | null = null;
+  return {
+    load: () => state,
+    save: (next) => {
+      state = structuredClone(next);
+    },
+  };
 };

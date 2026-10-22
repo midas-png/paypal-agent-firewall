@@ -30,9 +30,12 @@ export const GuardrailsPanel = ({ guardrails, merchants, spentTodayCents, onSave
         <div className="meter__track">
           <div className="meter__fill" style={{ width: `${usedPct}%` }} />
         </div>
-        <button type="button" className="link" onClick={() => void onResetDay()}>
-          reset day
-        </button>
+        <div className="meter__foot">
+          <span className="muted">Counts every payment the firewall allowed, including ones awaiting PayPal approval.</span>
+          <button type="button" className="link" onClick={() => void onResetDay()}>
+            reset day
+          </button>
+        </div>
       </div>
 
       <label className="field">

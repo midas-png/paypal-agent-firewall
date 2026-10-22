@@ -11,6 +11,7 @@ import { CreateTaskSchema, GuardrailsSchema, MandateSchema } from '../app/schema
 import { MERCHANTS, PRODUCTS } from '../infra/catalog';
 import { createModel, describeLlmError, type UserFacingError } from '../infra/llm';
 import { createPaymentGateway } from '../infra/paymentGateway';
+import { createFileStateStore } from '../infra/stateStore';
 
 const port = Number(process.env.PORT ?? 8787);
 /** Origin the browser uses; in dev this is the Vite server, which proxies /api here. */
@@ -22,7 +23,10 @@ const gateway = createPaymentGateway({
   cancelUrl: `${publicUrl}/api/paypal/cancel`,
 });
 const model = createModel(process.env);
-const service = createFirewallService({ gateway });
+const service = createFirewallService({
+  gateway,
+  store: createFileStateStore(process.env.STATE_FILE ?? '.data/state.json'),
+});
 
 const errorMessage = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 const fail = (title: string, detail: string): UserFacingError => ({ title, detail });

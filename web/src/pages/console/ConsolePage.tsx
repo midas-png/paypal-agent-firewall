@@ -21,6 +21,11 @@ export const ConsolePage = () => {
     api.getState().then(setState, (e: unknown) => setError(toApiError(e)));
   }, []);
   useEffect(refresh, [refresh]);
+  // Payments are approved in a PayPal tab; refresh limits and spend when the user comes back.
+  useEffect(() => {
+    window.addEventListener('focus', refresh);
+    return () => window.removeEventListener('focus', refresh);
+  }, [refresh]);
 
   if (error) {
     return (
