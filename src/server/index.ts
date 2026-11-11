@@ -15,8 +15,8 @@ import { createFileStateStore } from '../infra/stateStore';
 import { renderPaymentResult } from './paymentResultPage';
 
 const port = Number(process.env.PORT ?? 8787);
-/** Public origin of this API server; PayPal sends buyers back here. */
-const publicUrl = (process.env.PUBLIC_URL ?? `http://localhost:${port}`).replace(/\/$/, '');
+/** Public origin of this API server; PayPal sends buyers back here. Render provides RENDER_EXTERNAL_URL. */
+const publicUrl = (process.env.PUBLIC_URL ?? process.env.RENDER_EXTERNAL_URL ?? `http://localhost:${port}`).replace(/\/$/, '');
 const gateway = createPaymentGateway({
   clientId: process.env.PAYPAL_CLIENT_ID,
   clientSecret: process.env.PAYPAL_CLIENT_SECRET,
